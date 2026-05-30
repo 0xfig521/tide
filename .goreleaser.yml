@@ -9,6 +9,7 @@ builds:
     binary: tide
     ldflags:
       - -s -w
+      - -X github.com/0xfig521/tide/cmd.version={{.Version}}
     env:
       - CGO_ENABLED=0
     goos:

@@ -16,6 +16,9 @@ var (
 	dataDir string
 
 	dbConn *db.DB
+
+	// set by ldflags at build time
+	version = "dev"
 )
 
 var rootCmd = &cobra.Command{
@@ -24,6 +27,7 @@ var rootCmd = &cobra.Command{
 	Long: `tide is a fast, concurrent RSS reader CLI built in Go.
 It uses SQLite for storage and supports categories, search, and more.`,
 	SilenceUsage: true,
+	Version:      version,
 }
 
 func Execute() {
