@@ -7,7 +7,7 @@
      ╚═╝   ╚═╝╚═════╝ ╚══════╝
 </pre>
 
-<p align="center"><em>A fast, concurrent RSS reader for the terminal.</em></p>
+<p align="center"><em>RSS, reimagined for AI agents and the command line.</em></p>
 
 <p align="center">
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go" alt="Go"></a>
@@ -17,18 +17,19 @@
 
 <p align="center">English | <a href="./README.zh.md">中文</a></p>
 
-A fast, concurrent RSS reader for the terminal. `tide` keeps your feeds in a SQLite database, fetches in parallel, and returns everything as JSON — easy to pipe, script, or browse.
+**Tide** is an RSS data adapter built for AI agents and terminal users alike. It stores feeds in SQLite, fetches in parallel, and speaks one language: **JSON**. Every command returns a stable `{ok, data, error, meta}` envelope — clean stdout, progress on stderr, machine-readable error codes with non-zero exits. No parsing gymnastics, no grep hacks, no guesswork.
 
 ## Features
 
-- **⚡ Concurrent** — pulls dozens of feeds in parallel, progress bar included
+- **🧠 AI-native** — stable JSON envelope, structured error codes, clean stdout/stderr separation
+- **⚡ Concurrent** — pulls dozens of feeds in parallel, progress bar writes to stderr
 - **📦 Zero deps** — single binary, SQLite embedded, no runtime dependencies
 - **🗃️ Categories** — organize feeds, filter by category everywhere
-- **🔍 Full-text search** — across titles, descriptions, and content
-- **📡 Smart caching** — ETag / Last-Modified conditional requests, no wasted bandwidth
+- **🔍 FTS5 search** — real full-text search with `MATCH`, not `LIKE %keyword%`
+- **📡 Smart caching** — ETag / Last-Modified conditional requests
 - **⏱️ Time filters** — `--since 24h`, `--since 7d`
 - **📄 Pagination** — `--page`, `--page-size`
-- **🤖 Daemon mode** — `tide schedule start` runs the fetcher in the background on a schedule
+- **🤖 Daemon mode** — `tide schedule start` for scheduled background fetching
 
 ## Install
 
@@ -63,8 +64,38 @@ tide read 3
 tide star 7
 
 # Pipe to jq
-tide list --unread | jq '.items[] | {title, feed_title}'
+tide list --unread | jq '.data.items[] | {title, feed_title}'
 ```
+
+## For AI Agents
+
+Tide speaks JSON — always. Every command returns a stable envelope:
+
+```json
+{"ok": true, "data": {...}, "error": null, "meta": null}
+```
+
+No parsing hacks required:
+
+- **stdout** = clean JSON, always. **stderr** = progress bars, logs, diagnostics.
+- **Exit code 0** = success, **non-zero** = failure. Check both `.ok` and exit code.
+- **Error codes** are stable strings: `feed_not_found`, `entry_not_found`, `feed_already_exists`, `invalid_args`, `internal_error`.
+- **`--quiet`** on `tide fetch` suppresses the progress bar for pristine output.
+
+```bash
+tide fetch --quiet                     # silent fetch, JSON result on stdout
+tide search "rust async" --since 7d    # FTS5 search, last 7 days
+tide get 42                            # full entry with description + content
+tide read 42                           # mark as read
+```
+
+Install the skill once and your agent knows every command:
+
+```bash
+npx skills add 0xfig521/tide
+```
+
+Full skill at [`tide/SKILL.md`](./tide/SKILL.md).
 
 ## Commands
 
@@ -74,8 +105,9 @@ tide list --unread | jq '.items[] | {title, feed_title}'
 | `remove <id>` | Unsubscribe |
 | `sources` | List subscriptions |
 | `list` | Browse articles (filters, pagination, time range) |
-| `search <kw>` | Full-text search |
+| `search <kw>` | Full-text search (FTS5) |
 | `unread` | Unread articles |
+| `get <id>` | Get full entry details (description, content) |
 | `fetch [--force]` | Pull latest from feeds |
 | `schedule` | Manage background daemon (start/stop/status/logs) |
 | `read <id>` | Mark as read |
@@ -84,7 +116,7 @@ tide list --unread | jq '.items[] | {title, feed_title}'
 | `upgrade` | Self-update to the latest version |
 | `info <id>` | Feed details |
 
-All commands output JSON by default. Use `--format table` on `list` for a terminal view.
+All commands output JSON by default (stable `{ok, data, error, meta}` envelope). Use `--format table` on `list` for a terminal view. Errors return non-zero exit codes with structured error codes.
 
 ## Scheduled Fetching
 
@@ -123,18 +155,6 @@ tide upgrade --tag v0.2.0
 ```
 
 Tide downloads prebuilt binaries from GitHub Releases and self-replaces.
-
-## AI Skill
-
-Tide ships with a [skill](https://skills.sh/) for AI coding agents (Claude Code, Codex, Cursor, etc.). Install it once and your agent can manage RSS feeds for you:
-
-```bash
-npx skills add 0xfig521/tide
-```
-
-The skill gives AI agents full knowledge of every tide command, flag, and workflow — so you can say "find me the top 5 unread articles about Rust this week" and it just works.
-
-See [`tide/SKILL.md`](./tide/SKILL.md) for the full skill definition.
 
 ## Powered by
 

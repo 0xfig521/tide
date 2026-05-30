@@ -7,7 +7,7 @@
      ╚═╝   ╚═╝╚═════╝ ╚══════╝
 </pre>
 
-<p align="center"><em>一个高速并发的终端 RSS 阅读器。</em></p>
+<p align="center"><em>面向 AI agent 与命令行的 RSS 数据适配器。</em></p>
 
 <p align="center">
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go" alt="Go"></a>
@@ -17,15 +17,16 @@
 
 <p align="center"><a href="./README.md">English</a> | 中文</p>
 
-一个高速并发的终端 RSS 阅读器。`tide` 将订阅源存入 SQLite，并行抓取，所有输出为 JSON — 方便管道、脚本或直接浏览。
+**Tide** 是为 AI agent 和终端用户设计的 RSS 数据适配器。基于 SQLite 存储，并发拉取，唯一输出语言：**JSON**。每个命令返回稳定的 `{ok, data, error, meta}` 信封 — stdout 干净可解析，stderr 承载进度与日志，结构化错误码配合非零退出码，无需任何解析奇技淫巧。
 
 ## 特性
 
-- **⚡ 高并发** — 同时拉取数十个源，带进度条
+- **🧠 AI 原生** — 稳定 JSON 信封、结构化错误码、stdout/stderr 严格分离
+- **⚡ 高并发** — 同时拉取数十个源，进度条走 stderr
 - **📦 零依赖** — 单文件二进制，SQLite 内嵌，无需运行时
 - **🗃️ 分类管理** — 组织源，按分类过滤
-- **🔍 全文搜索** — 标题、摘要、正文
-- **📡 智能缓存** — ETag / Last-Modified 条件请求，不浪费带宽
+- **🔍 FTS5 全文搜索** — 真正的 `MATCH` 搜索，非 `LIKE %keyword%`
+- **📡 智能缓存** — ETag / Last-Modified 条件请求
 - **⏱️ 时间过滤** — `--since 24h`、`--since 7d`
 - **📄 分页** — `--page`、`--page-size`
 - **🤖 守护模式** — `tide schedule start` 后台定时自动抓取
@@ -63,7 +64,7 @@ tide read 3
 tide star 7
 
 # 管道对接
-tide list --unread | jq '.items[] | {title, feed_title}'
+tide list --unread | jq '.data.items[] | {title, feed_title}'
 ```
 
 ## 命令一览
@@ -74,8 +75,9 @@ tide list --unread | jq '.items[] | {title, feed_title}'
 | `remove <id>` | 取消订阅 |
 | `sources` | 查看所有源 |
 | `list` | 浏览文章（支持筛选、分页、时间范围）|
-| `search <kw>` | 全文搜索 |
+| `search <kw>` | 全文搜索（FTS5）|
 | `unread` | 未读文章 |
+| `get <id>` | 获取文章完整详情（描述、正文）|
 | `fetch [--force]` | 拉取最新 |
 | `fetch --daemon` | 后台定时拉取 |
 | `schedule` | 管理后台守护进程（start/stop/status/logs）|
@@ -85,7 +87,7 @@ tide list --unread | jq '.items[] | {title, feed_title}'
 | `upgrade` | 自更新到最新版本 |
 | `info <id>` | 源详情 |
 
-所有命令默认输出 JSON。`list` 支持 `--format table` 切换为终端表格。
+所有命令默认输出 JSON（稳定 `{ok, data, error, meta}` 信封）。`list` 支持 `--format table` 切换为终端表格。错误返回非零退出码和结构化错误码。
 
 ## 定时抓取
 
@@ -125,17 +127,35 @@ tide upgrade --tag v0.2.0
 
 Tide 从 GitHub Releases 下载预编译二进制，自动替换当前版本。
 
-## AI Skill
+## 面向 AI Agent
 
-Tide 内置了面向 AI 编程助手（Claude Code、Codex、Cursor 等）的 [skill](https://skills.sh/)。安装后，AI 助手可以直接帮你管理 RSS 订阅：
+Tide 说一种语言：JSON。每个命令返回稳定信封：
+
+```json
+{"ok": true, "data": {...}, "error": null, "meta": null}
+```
+
+无需任何解析黑魔法：
+
+- **stdout** = 纯 JSON。**stderr** = 进度条、日志、诊断。
+- **退出码 0** = 成功，**非零** = 失败。同时检查 `.ok` 和退出码。
+- **错误码** 为稳定字符串：`feed_not_found`、`entry_not_found`、`feed_already_exists`、`invalid_args`、`internal_error`。
+- `tide fetch --quiet` 可屏蔽进度条，保证 stdout 纯净。
+
+```bash
+tide fetch --quiet                     # 静默抓取，stdout 纯 JSON
+tide search "rust async" --since 7d    # FTS5 全文搜索近 7 天
+tide get 42                            # 获取完整条目（含描述和正文）
+tide read 42                           # 标记已读
+```
+
+安装 skill 后，AI 助手可直接管理 RSS：
 
 ```bash
 npx skills add 0xfig521/tide
 ```
 
-安装后，你可以直接对 AI 说"帮我找这周关于 Rust 的前 5 篇未读文章"，它知道每一个 tide 命令和参数。
-
-完整 skill 定义见 [`tide/SKILL.md`](./tide/SKILL.md)。
+完整 skill 见 [`tide/SKILL.md`](./tide/SKILL.md)。
 
 ## 技术栈
 

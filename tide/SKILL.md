@@ -1,6 +1,6 @@
 ---
 name: tide
-description: Fast, concurrent terminal RSS reader. Use when managing RSS feeds, fetching articles, searching feed content, or reading RSS from the terminal. All output is JSON by default — pipeable and scriptable.
+description: RSS data adapter for AI agents. Use when managing RSS feeds, fetching articles, searching feed content, or reading RSS articles. All output is JSON with a stable {ok, data, error, meta} envelope — stdout is always clean, errors are structured, exit codes are non-zero on failure.
 metadata:
   author: 0xfig521
   version: "1.0.0"
@@ -9,12 +9,13 @@ metadata:
 
 # Tide
 
-Tide is a fast, concurrent RSS reader CLI built in Go. It stores feeds in SQLite, fetches articles in parallel, and returns everything as JSON — easy to pipe, script, or browse.
+Tide is an RSS data adapter for AI agents and terminal users. It stores feeds in SQLite, fetches in parallel, and returns everything as a stable JSON envelope: `{ok, data, error, meta}`. Progress and diagnostics go to stderr. Errors are structured with machine-readable codes and non-zero exit codes.
 
 ## Trigger
 
 Use this skill when the user asks to:
 
+- **Get full entry details** — `tide get <id>` (includes description + content)
 - **Subscribe to RSS feeds** — `tide add <url>`
 - **Fetch articles** — `tide fetch`
 - **Browse or list articles** — `tide list` with filters
@@ -67,10 +68,10 @@ Subscribe to an RSS feed.
 
 **Output** (JSON):
 ```json
-{"ok": true, "id": 1, "feed_url": "...", "title": "..."}
+{"ok": true, "data": {"id": 1, "feed_url": "...", "title": "..."}, "error": null, "meta": null}
 ```
 
-**Error**: duplicate feed returns `{"ok": false, "error": "already exists", "id": ..., ...}`
+**Error**: duplicate feed returns `{"ok": false, "error": {"code": "feed_already_exists", "message": "already exists"}}` with non-zero exit code.
 
 ---
 
@@ -119,10 +120,15 @@ tide list --format table                       # Terminal table view
 **JSON Output**:
 ```json
 {
-  "items": [{ "id": 1, "title": "...", "url": "...", "feed_title": "...", ... }],
-  "total": 42,
-  "page": 1,
-  "page_size": 20
+  "ok": true,
+  "data": {
+    "items": [{ "id": 1, "title": "...", "url": "...", "feed_title": "...", "is_read": false, "is_starred": false }],
+    "total": 42,
+    "page": 1,
+    "page_size": 20
+  },
+  "error": null,
+  "meta": null
 }
 ```
 
@@ -130,7 +136,7 @@ tide list --format table                       # Terminal table view
 
 ### `tide search <keyword>`
 
-Alias for `tide list --search <keyword>`. Full-text search across titles, descriptions, and content.
+Alias for `tide list --search <keyword>`. Full-text search (SQLite FTS5) across titles, descriptions, and content.
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
@@ -139,6 +145,38 @@ Alias for `tide list --search <keyword>`. Full-text search across titles, descri
 | `--unread` | | `false` | Only unread entries |
 | `--starred` | | `false` | Only starred entries |
 | `--limit` | `-n` | `50` | Maximum results |
+
+---
+
+### `tide get <entry-id>`
+
+Get full details of a single entry, including description and content.
+
+**Output** (JSON envelope):
+```json
+{
+  "ok": true,
+  "data": {
+    "id": 42,
+    "title": "Introducing Tide",
+    "url": "https://example.com/post",
+    "author": "Jane Doe",
+    "published_at": "2026-05-30 10:00:00",
+    "feed_title": "Go Blog",
+    "feed_id": 1,
+    "description": "A new RSS reader for the terminal...",
+    "content": "<p>Full article HTML content...</p>",
+    "categories": "golang,cli",
+    "guid": "https://example.com/post/42",
+    "is_read": false,
+    "is_starred": false
+  },
+  "error": null,
+  "meta": null
+}
+```
+
+**Error**: entry not found returns `{"ok": false, "error": {"code": "entry_not_found", "message": "entry not found"}}` with non-zero exit code.
 
 ---
 
@@ -157,7 +195,7 @@ Alias for `tide list --unread`. Quick shortcut for unread articles.
 
 Mark an article as read by ID.
 
-**Output**: `{"ok": true, "id": 1, "read": true}`
+**Output**: `{"ok": true, "data": {"id": 1, "read": true}, "error": null, "meta": null}`
 
 ---
 
@@ -165,7 +203,7 @@ Mark an article as read by ID.
 
 Toggle star/bookmark on an article. Calling on a starred article un-stars it.
 
-**Output**: `{"ok": true, "id": 1, "starred": true}`
+**Output**: `{"ok": true, "data": {"id": 1, "starred": true}, "error": null, "meta": null}`
 
 ---
 
@@ -177,22 +215,27 @@ List all RSS feed subscriptions. Alias: `tide feeds`.
 |------|-------|-------------|
 | `--category` | `-c` | Filter by category name |
 
-**Output** (JSON array of feed objects):
+**Output** (JSON envelope with array of feed objects):
 ```json
-[
-  {
-    "id": 1,
-    "title": "Go Blog",
-    "feed_url": "https://blog.golang.org/feed.atom",
-    "site_url": "...",
-    "description": "...",
-    "categories": ["Tech"],
-    "entry_count": 150,
-    "unread_count": 12,
-    "last_fetched": "2026-05-30 15:00:00",
-    "is_active": true
-  }
-]
+{
+  "ok": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "Go Blog",
+      "feed_url": "https://blog.golang.org/feed.atom",
+      "site_url": "...",
+      "description": "...",
+      "categories": ["Tech"],
+      "entry_count": 150,
+      "unread_count": 12,
+      "last_fetched": "2026-05-30 15:00:00",
+      "is_active": true
+    }
+  ],
+  "error": null,
+  "meta": null
+}
 ```
 
 ---
@@ -325,12 +368,34 @@ tide fetch --daemon --interval 30m --concurrency 5
 
 ## Tips for AI Agents
 
-1. **Always check if `tide` is installed** before running commands. If `command not found`, guide the user to install it first.
-2. **All output is JSON** — use `jq` to parse and filter results when scripting.
-3. **The `fetch` command is the first step** when the user wants fresh content. For continuous fetching, use `tide schedule start` instead of `tide fetch --daemon`.
-4. **Use `--format table`** when the user wants human-readable output instead of JSON.
-5. **The `--since` flag** supports: `1h`, `6h`, `12h`, `24h`, `3d`, `7d`, `14d`, `30d`.
-6. **Categories are auto-created** when using `--category` with `tide add`.
-7. **Feed IDs** are integers. Use `tide sources` to find them.
-8. **Schedule management**: Use `tide schedule start` to set up automatic fetching. Check `tide schedule status` to verify it's running, `tide schedule logs` for troubleshooting.
-9. **Self-update**: `tide upgrade --check` before proposing commands to ensure the user has the latest features. `tide upgrade` handles cross-version updates safely.
+1. **All output is JSON with a standard envelope**: `{"ok": true/false, "data": ..., "error": {"code": "...", "message": "..."}, "meta": null}`. Parse `.ok` first — if `false`, check `.error.code`.
+2. **Exit codes signal success/failure**: exit code 0 = success, non-zero = failure. Always check exit code alongside `.ok`.
+3. **Error codes** are stable machine-readable strings: `feed_not_found`, `entry_not_found`, `feed_already_exists`, `already_exists`, `invalid_args`, `internal_error`.
+4. **Always check if `tide` is installed** before running commands. If `command not found`, guide the user to install it first.
+5. **The `fetch` command is the first step** when the user wants fresh content. Use `--quiet` to suppress the progress bar for clean JSON output. For continuous fetching, use `tide schedule start` instead of `tide fetch --daemon`.
+6. **Use `--format table`** when the user wants human-readable output instead of JSON.
+7. **The `--since` flag** supports: `1h`, `6h`, `12h`, `24h`, `3d`, `7d`, `14d`, `30d`.
+8. **Categories are auto-created** when using `--category` with `tide add`.
+9. **Feed IDs** are integers. Use `tide sources` to find them.
+10. **Schedule management**: Use `tide schedule start` to set up automatic fetching. Check `tide schedule status` to verify it's running, `tide schedule logs` for troubleshooting.
+11. **Self-update**: `tide upgrade --check` before proposing commands to ensure the user has the latest features. `tide upgrade` handles cross-version updates safely.
+12. **Get full content**: Use `tide get <id>` to retrieve description and content for summarization. The default list/search output is lightweight — explicit retrieval is needed for full text.
+
+## Recommended AI Agent Workflow
+
+```bash
+# 1. Fetch fresh content (suppress progress bar for clean JSON)
+tide fetch --quiet
+
+# 2. Search for articles
+tide search "rust async" --since 7d --limit 5
+
+# 3. Get full content for summarization
+tide get 42
+
+# 4. Mark as read
+tide read 42
+
+# 5. Check for errors
+# All commands: parse .ok, check .error.code, verify exit code
+```
