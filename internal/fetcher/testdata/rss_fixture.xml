@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Test RSS Feed</title>
+    <link>https://example.com</link>
+    <description>A test RSS 2.0 feed for unit tests</description>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 01 Jan 2024 12:00:00 GMT</lastBuildDate>
+    <atom:link href="https://example.com/rss" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>RSS Item One</title>
+      <link>https://example.com/rss/1</link>
+      <guid isPermaLink="true">https://example.com/rss/1</guid>
+      <pubDate>Mon, 01 Jan 2024 10:00:00 GMT</pubDate>
+      <author>Alice</author>
+      <description>First test item description.</description>
+      <content:encoded xmlns:content="http://purl.org/rss/1.0/modules/content/"><![CDATA[<p>Full content of first RSS item.</p>]]></content:encoded>
+      <category>tech</category>
+      <category>go</category>
+    </item>
+    <item>
+      <title>RSS Item Two</title>
+      <link>https://example.com/rss/2</link>
+      <guid isPermaLink="true">https://example.com/rss/2</guid>
+      <pubDate>Tue, 02 Jan 2024 14:30:00 GMT</pubDate>
+      <author>Bob</author>
+      <description>Second test item description.</description>
+      <category>news</category>
+      <enclosure url="https://example.com/image.png" type="image/png"/>
+    </item>
+  </channel>
+</rss>
