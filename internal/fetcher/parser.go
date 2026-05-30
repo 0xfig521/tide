@@ -27,7 +27,7 @@ func DefaultConfig() Config {
 		Timeout:          30 * time.Second,
 		MaxIdleConns:     100,
 		MaxConnsPerHost:  10,
-		UserAgent:        "GoRSS/1.0",
+		UserAgent:        "Tide/1.0",
 		MinFetchInterval: 30 * time.Minute,
 		ForceRefresh:     false,
 		CheckInterval:    60 * time.Minute,

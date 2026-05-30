@@ -51,10 +51,10 @@ uninstall: ## Remove tide from system
 	done
 
 test: ## Run tests
-	$(GO) test ./... -v -count=1
+	$(GO) test ./cmd/... ./internal/... ./pkg/... . -v -count=1
 
 test-race: ## Run tests with race detector
-	$(GO) test ./... -v -race -count=1
+	$(GO) test ./cmd/... ./internal/... ./pkg/... . -v -race -count=1
 
 clean: ## Remove build artifacts
 	rm -rf $(BUILD_DIR)
@@ -63,9 +63,9 @@ run: build ## Build and run
 	./$(BUILD_DIR)/$(APP_NAME) list
 
 fmt: ## Format code
-	$(GO) fmt ./...
+	$(GO) fmt ./cmd/... ./internal/... ./pkg/... .
 
 vet: ## Run go vet
-	$(GO) vet ./...
+	$(GO) vet ./cmd/... ./internal/... ./pkg/... .
 
 lint: fmt vet ## Lint and format
