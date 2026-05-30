@@ -30,6 +30,7 @@
 - **⏱️ 时间过滤** — `--since 24h`、`--since 7d`
 - **📄 分页** — `--page`、`--page-size`
 - **🤖 守护模式** — `tide schedule start` 后台定时自动抓取
+- **↔️ OPML** — `tide import` / `tide export` 在不同 RSS 阅读器间迁移订阅
 
 ## 安装
 
@@ -74,12 +75,13 @@ tide list --unread | jq '.data.items[] | {title, feed_title}'
 | `add <url> [-c <cat>]` | 添加订阅 |
 | `remove <id>` | 取消订阅 |
 | `sources` | 查看所有源 |
+| `import <file>` | 从 OPML 文件导入订阅 |
+| `export [--output <f>]` | 导出订阅为 OPML（stdout 或文件）|
 | `list` | 浏览文章（支持筛选、分页、时间范围）|
 | `search <kw>` | 全文搜索（FTS5）|
 | `unread` | 未读文章 |
 | `get <id>` | 获取文章完整详情（描述、正文）|
 | `fetch [--force]` | 拉取最新 |
-| `fetch --daemon` | 后台定时拉取 |
 | `schedule` | 管理后台守护进程（start/stop/status/logs）|
 | `read <id>` | 标为已读 |
 | `star <id>` | 收藏 / 取消 |
@@ -111,6 +113,23 @@ tide schedule stop
 ```
 
 守护进程独立于终端会话运行，PID 文件和日志保存在 `~/.local/share/tide/logs/` 中。
+
+## OPML 导入导出
+
+通过标准 OPML 2.0 格式在不同 RSS 阅读器间迁移订阅。
+
+```bash
+# 从其他 RSS 阅读器导入订阅
+tide import feeds.opml
+
+# 导出所有订阅供备份或迁移
+tide export -o tide-backup.opml
+
+# 导出到 stdout（供管道处理）
+tide export
+```
+
+`tide import` 会保留分类层级和源元数据（标题、站点 URL）。已存在的重复订阅自动跳过。
 
 ## 自更新
 

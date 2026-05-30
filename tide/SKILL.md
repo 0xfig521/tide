@@ -17,6 +17,7 @@ Use this skill when the user asks to:
 
 - **Get full entry details** — `tide get <id>` (includes description + content)
 - **Subscribe to RSS feeds** — `tide add <url>`
+- **Import/Export OPML** — `tide import <file>` / `tide export [--output <file>]`
 - **Fetch articles** — `tide fetch`
 - **Browse or list articles** — `tide list` with filters
 - **Search feed content** — `tide search <keyword>`
@@ -207,6 +208,45 @@ Toggle star/bookmark on an article. Calling on a starred article un-stars it.
 
 ---
 
+### `tide import <file>`
+
+Import RSS feed subscriptions from an OPML 2.0 file. Supports nested category groups. Duplicate feeds are skipped silently.
+
+**Output** (JSON summary):
+```json
+{
+  "ok": true,
+  "data": {
+    "imported": 12,
+    "skipped": 3,
+    "errors": []
+  },
+  "error": null,
+  "meta": null
+}
+```
+
+**Error codes**: `invalid_args` (file not found or invalid OPML).
+
+---
+
+### `tide export`
+
+Export all RSS feed subscriptions as an OPML 2.0 file. By default writes OPML XML to stdout. Use `--output` to write to a file instead.
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--output` | `-o` | Output file path (default: stdout) |
+
+When `--output` is specified, returns a JSON success envelope:
+```json
+{"ok": true, "data": {"file": "feeds.opml", "feeds": "15"}, "error": null, "meta": null}
+```
+
+When writing to stdout, the raw OPML XML is output directly (for piping to files or other tools).
+
+---
+
 ### `tide sources`
 
 List all RSS feed subscriptions. Alias: `tide feeds`.
@@ -330,6 +370,19 @@ tide fetch --concurrency 10
 tide list --unread --format table
 ```
 
+### Migrate from Another Reader
+```bash
+# Import OPML from another RSS reader
+tide import feeds.opml
+tide fetch
+```
+
+### Backup Subscriptions
+```bash
+# Export feeds to OPML file for backup or migration
+tide export -o my-feeds.opml
+```
+
 ### Daily Reading
 ```bash
 tide fetch && tide list --unread --since 24h --format table
@@ -375,11 +428,13 @@ tide fetch --daemon --interval 30m --concurrency 5
 5. **The `fetch` command is the first step** when the user wants fresh content. Use `--quiet` to suppress the progress bar for clean JSON output. For continuous fetching, use `tide schedule start` instead of `tide fetch --daemon`.
 6. **Use `--format table`** when the user wants human-readable output instead of JSON.
 7. **The `--since` flag** supports: `1h`, `6h`, `12h`, `24h`, `3d`, `7d`, `14d`, `30d`.
-8. **Categories are auto-created** when using `--category` with `tide add`.
+8. **Categories are auto-created** when using `--category` with `tide add` or during OPML import.
 9. **Feed IDs** are integers. Use `tide sources` to find them.
 10. **Schedule management**: Use `tide schedule start` to set up automatic fetching. Check `tide schedule status` to verify it's running, `tide schedule logs` for troubleshooting.
 11. **Self-update**: `tide upgrade --check` before proposing commands to ensure the user has the latest features. `tide upgrade` handles cross-version updates safely.
 12. **Get full content**: Use `tide get <id>` to retrieve description and content for summarization. The default list/search output is lightweight — explicit retrieval is needed for full text.
+13. **OPML import**: Use `tide import <file>` to migrate subscriptions from other RSS readers. Duplicates are skipped automatically. The command returns a JSON summary.
+14. **OPML export**: Use `tide export -o <file>` for backup. Without `-o`, OPML XML is written to stdout.
 
 ## Recommended AI Agent Workflow
 

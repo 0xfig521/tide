@@ -1,3 +1,17 @@
+## 0.5.0 - 2026-05-30
+
+### Features
+- Add OPML 2.0 import (`tide import <file>`) — recursively parses category hierarchies, preserves feed metadata (title, site URL), skips duplicates with best-effort error reporting
+- Add OPML 2.0 export (`tide export [-o <file>]`) — groups feeds by category, defaults to stdout, file output returns JSON confirmation
+- OPML round-trip: import then export preserves title, xmlUrl, htmlUrl, and category assignments
+
+### Tests
+- Add 9 unit tests for OPML parser and generator (flat, nested, deep-nested, empty, no-xmlUrl, invalid XML, generate, round-trip, default title)
+
+### Documentation
+- Add OPML import/export to README, README.zh, and SKILL.md
+- Add migration and backup workflows to docs
+
 ## 0.4.0 - 2026-05-30
 
 ### Features

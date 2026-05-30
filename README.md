@@ -30,6 +30,7 @@
 - **⏱️ Time filters** — `--since 24h`, `--since 7d`
 - **📄 Pagination** — `--page`, `--page-size`
 - **🤖 Daemon mode** — `tide schedule start` for scheduled background fetching
+- **↔️ OPML** — `tide import` / `tide export` for migrating subscriptions between RSS readers
 
 ## Install
 
@@ -104,6 +105,8 @@ Full skill at [`tide/SKILL.md`](./tide/SKILL.md).
 | `add <url> [-c <cat>]` | Subscribe to a feed |
 | `remove <id>` | Unsubscribe |
 | `sources` | List subscriptions |
+| `import <file>` | Import feeds from OPML file |
+| `export [--output <f>]` | Export feeds to OPML (stdout or file) |
 | `list` | Browse articles (filters, pagination, time range) |
 | `search <kw>` | Full-text search (FTS5) |
 | `unread` | Unread articles |
@@ -140,6 +143,23 @@ tide schedule stop
 ```
 
 The daemon persists across terminal sessions. It writes a PID file and logs to `~/.local/share/tide/logs/`.
+
+## OPML Import & Export
+
+Migrate subscriptions between RSS readers using standard OPML 2.0 format.
+
+```bash
+# Import feeds from another RSS reader
+tide import feeds.opml
+
+# Export all subscriptions for backup or migration
+tide export -o tide-backup.opml
+
+# Export to stdout (for piping)
+tide export
+```
+
+`tide import` preserves category structure and feed metadata (title, site URL). Duplicate feeds are skipped automatically.
 
 ## Upgrading
 
