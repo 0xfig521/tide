@@ -1,5 +1,2 @@
 name = "tide"
 pages_build_output_dir = "dist"
-
-[env.production]
-route = "tide.0xfig.xyz/*"
