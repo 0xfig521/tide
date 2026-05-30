@@ -33,6 +33,10 @@ type EntryOutput struct {
 	PublishedAt string `json:"published_at,omitempty"`
 	FeedTitle   string `json:"feed_title,omitempty"`
 	FeedID      int64  `json:"feed_id"`
+	Description string `json:"description,omitempty"`
+	Content     string `json:"content,omitempty"`
+	Categories  string `json:"categories,omitempty"`
+	GUID        string `json:"guid,omitempty"`
 	IsRead      bool   `json:"is_read"`
 	IsStarred   bool   `json:"is_starred"`
 }

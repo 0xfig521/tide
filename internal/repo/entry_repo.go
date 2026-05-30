@@ -48,6 +48,29 @@ func (r *EntryRepo) ListByFeed(feedID int64, limit, offset int) ([]*models.Entry
 	return scanEntries(rows)
 }
 
+// GetByID returns a single entry by its ID.
+func (r *EntryRepo) GetByID(id int64) (*models.Entry, error) {
+	row := r.db.Conn.QueryRow(`
+		SELECT `+entryCols+`
+		`+entryFrom+`
+		WHERE e.id = ?
+	`, id)
+	e := &models.Entry{}
+	var publishedAt, createdAt, updatedAt string
+	if err := row.Scan(
+		&e.ID, &e.FeedID, &e.Title, &e.URL, &e.GUID, &e.Content, &e.Description,
+		&e.AuthorName, &e.ImageURL, &e.Categories,
+		&publishedAt, &e.IsRead, &e.IsStarred, &createdAt, &updatedAt,
+		&e.FeedTitle,
+	); err != nil {
+		return nil, err
+	}
+	e.PublishedAt = parseTime(publishedAt)
+	e.CreatedAt = mustParseTime(createdAt)
+	e.UpdatedAt = mustParseTime(updatedAt)
+	return e, nil
+}
+
 func (r *EntryRepo) ListUnread(categoryName string, limit, offset int) ([]*models.Entry, error) {
 	var rows *sql.Rows
 	var err error
@@ -108,9 +131,9 @@ func (r *EntryRepo) ListEntries(q EntryQuery) ([]*models.Entry, error) {
 	var args []any
 
 	if q.Keyword != "" {
-		conditions = append(conditions, "(e.title LIKE ? OR e.description LIKE ? OR e.content LIKE ?)")
-		like := "%" + q.Keyword + "%"
-		args = append(args, like, like, like)
+		query += " INNER JOIN entries_fts ON entries_fts.rowid = e.id"
+		conditions = append(conditions, "entries_fts MATCH ?")
+		args = append(args, q.Keyword)
 	}
 
 	if q.CategoryName != "" {
@@ -172,9 +195,9 @@ func (r *EntryRepo) CountEntries(q EntryQuery) (int, error) {
 	var args []any
 
 	if q.Keyword != "" {
-		conditions = append(conditions, "(e.title LIKE ? OR e.description LIKE ? OR e.content LIKE ?)")
-		like := "%" + q.Keyword + "%"
-		args = append(args, like, like, like)
+		query += " INNER JOIN entries_fts ON entries_fts.rowid = e.id"
+		conditions = append(conditions, "entries_fts MATCH ?")
+		args = append(args, q.Keyword)
 	}
 
 	if q.CategoryName != "" {

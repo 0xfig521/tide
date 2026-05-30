@@ -11,6 +11,7 @@ func (db *DB) migrate() error {
 		sql     string
 	}{
 		{1, schemaV1},
+		{2, schemaV2},
 	}
 
 	// Create schema version table if not exists
@@ -105,4 +106,31 @@ CREATE INDEX IF NOT EXISTS idx_entries_is_read ON entries(feed_id, is_read);
 CREATE INDEX IF NOT EXISTS idx_entries_is_starred ON entries(is_starred);
 CREATE INDEX IF NOT EXISTS idx_feeds_next_check ON feeds(next_check_at, is_active);
 CREATE INDEX IF NOT EXISTS idx_feeds_url ON feeds(feed_url);
+`
+
+const schemaV2 = `
+CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
+    title,
+    description,
+    content,
+    content='entries',
+    content_rowid='id'
+);
+
+CREATE TRIGGER IF NOT EXISTS entries_ai AFTER INSERT ON entries BEGIN
+    INSERT INTO entries_fts(rowid, title, description, content)
+    VALUES (new.id, new.title, new.description, new.content);
+END;
+
+CREATE TRIGGER IF NOT EXISTS entries_ad AFTER DELETE ON entries BEGIN
+    INSERT INTO entries_fts(entries_fts, rowid, title, description, content)
+    VALUES ('delete', old.id, old.title, old.description, old.content);
+END;
+
+CREATE TRIGGER IF NOT EXISTS entries_au AFTER UPDATE ON entries BEGIN
+    INSERT INTO entries_fts(entries_fts, rowid, title, description, content)
+    VALUES ('delete', old.id, old.title, old.description, old.content);
+    INSERT INTO entries_fts(rowid, title, description, content)
+    VALUES (new.id, new.title, new.description, new.content);
+END;
 `
