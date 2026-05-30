@@ -25,6 +25,7 @@ Use this skill when the user asks to:
 - **View subscriptions** — `tide sources`
 - **Manage the background daemon** — `tide schedule start|stop|status|logs`
 - **Run RSS fetching daemon** — `tide fetch --daemon` (low-level, prefer `tide schedule` for lifecycle management)
+- **Self-update tide** — `tide upgrade` or `tide upgrade --check`
 - **Pipe RSS data to jq or other tools** — all output is JSON
 
 ## Installation
@@ -252,6 +253,30 @@ Manage the background daemon lifecycle. This is the recommended way to run conti
 - Stopping when not running reports cleanly
 - Uses the same `--data-dir` or `--db` flags for database path
 
+---
+
+### `tide upgrade`
+
+Self-update tide to the latest version from GitHub Releases.
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--check` | | Check if a new version is available (no install) |
+| `--tag` | | Install a specific version tag (e.g. `v0.2.0`) |
+
+**Examples**:
+```bash
+tide upgrade              # Upgrade to latest
+tide upgrade --check      # Check for updates
+tide upgrade --tag v0.1.2 # Downgrade to a specific version
+```
+
+**Behavior**:
+- Downloads the appropriate prebuilt binary (`tide-{os}-{arch}.tar.gz`) from GitHub Releases
+- Verifies the downloaded binary before installing
+- Creates a backup (`.old`) before replacing, removes on success
+- Reports "Already up to date" if current version matches latest
+
 ## Common Workflows
 
 ### Quick Setup (New User)
@@ -287,6 +312,12 @@ tide schedule status       # Check it's running
 tide schedule logs -n 20   # Verify it's fetching
 ```
 
+### Upgrade
+```bash
+tide upgrade --check       # Check for new version
+tide upgrade               # Install latest
+```
+
 ### Manual Daemon (Advanced)
 ```bash
 tide fetch --daemon --interval 30m --concurrency 5
@@ -302,3 +333,4 @@ tide fetch --daemon --interval 30m --concurrency 5
 6. **Categories are auto-created** when using `--category` with `tide add`.
 7. **Feed IDs** are integers. Use `tide sources` to find them.
 8. **Schedule management**: Use `tide schedule start` to set up automatic fetching. Check `tide schedule status` to verify it's running, `tide schedule logs` for troubleshooting.
+9. **Self-update**: `tide upgrade --check` before proposing commands to ensure the user has the latest features. `tide upgrade` handles cross-version updates safely.

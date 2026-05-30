@@ -82,6 +82,7 @@ tide list --unread | jq '.items[] | {title, feed_title}'
 | `read <id>` | 标为已读 |
 | `star <id>` | 收藏 / 取消 |
 | `category` | 分类管理（create/list/assign/remove）|
+| `upgrade` | 自更新到最新版本 |
 | `info <id>` | 源详情 |
 
 所有命令默认输出 JSON。`list` 支持 `--format table` 切换为终端表格。
@@ -108,6 +109,21 @@ tide schedule stop
 ```
 
 守护进程独立于终端会话运行，PID 文件和日志保存在 `~/.local/share/tide/logs/` 中。
+
+## 自更新
+
+```bash
+# 检查新版本
+tide upgrade --check
+
+# 更新到最新版
+tide upgrade
+
+# 安装指定版本
+tide upgrade --tag v0.2.0
+```
+
+Tide 从 GitHub Releases 下载预编译二进制，自动替换当前版本。
 
 ## AI Skill
 

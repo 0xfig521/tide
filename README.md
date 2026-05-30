@@ -81,6 +81,7 @@ tide list --unread | jq '.items[] | {title, feed_title}'
 | `read <id>` | Mark as read |
 | `star <id>` | Bookmark / unbookmark |
 | `category` | Manage categories (create/list/assign/remove) |
+| `upgrade` | Self-update to the latest version |
 | `info <id>` | Feed details |
 
 All commands output JSON by default. Use `--format table` on `list` for a terminal view.
@@ -107,6 +108,21 @@ tide schedule stop
 ```
 
 The daemon persists across terminal sessions. It writes a PID file and logs to `~/.local/share/tide/logs/`.
+
+## Upgrading
+
+```bash
+# Check for new version
+tide upgrade --check
+
+# Upgrade to latest
+tide upgrade
+
+# Install a specific version
+tide upgrade --tag v0.2.0
+```
+
+Tide downloads prebuilt binaries from GitHub Releases and self-replaces.
 
 ## AI Skill
 
