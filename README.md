@@ -31,7 +31,7 @@ A fast, concurrent RSS reader for the terminal. `tide` keeps your feeds in a SQL
 curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
 
 # Homebrew
-brew install ./Formula/tide.rb
+brew install 0xfig521/tap/tide
 
 # Go
 go install github.com/0xfig521/tide@latest
