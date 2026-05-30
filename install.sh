@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# tide installer — one-line install for macOS and Linux
+# tide installer — pure binary download, no Go required
 # Usage: curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
 
 OWNER="0xfig521"
@@ -25,29 +25,30 @@ case "$ARCH" in
     *)            echo "tide: unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-# ── binary name pattern: tide-darwin-arm64, tide-linux-amd64, etc. ──
 TARBALL="${BINARY}-${OS}-${ARCH}.tar.gz"
-DOWNLOAD_URL="https://github.com/${OWNER}/${REPO}/releases/latest/download/${TARBALL}"
+BASE_URL="https://github.com/${OWNER}/${REPO}/releases"
 
-# ── Go install fallback ─────────────────────────────────────
-if command -v go &>/dev/null; then
-    echo "tide: installing via Go toolchain..."
-    go install "github.com/${OWNER}/${REPO}@latest"
-    echo "✓ tide installed to \$(go env GOPATH)/bin/tide"
-    exit 0
+# ── get latest version tag ──────────────────────────────────
+LATEST=$(curl -fsSL "${BASE_URL}/latest" -o /dev/null -w '%{url_effective}' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' || true)
+
+if [ -z "$LATEST" ]; then
+    echo "tide: no release found. Run 'go install github.com/${OWNER}/${REPO}@latest' for a source build."
+    exit 1
 fi
 
-# ── download binary ─────────────────────────────────────────
+DOWNLOAD_URL="${BASE_URL}/download/${LATEST}/${TARBALL}"
+
+# ── download ────────────────────────────────────────────────
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-echo "tide: downloading ${TARBALL}..."
+echo "tide: downloading ${LATEST} for ${OS}/${ARCH}..."
 if command -v curl &>/dev/null; then
     curl -fsSL "$DOWNLOAD_URL" -o "$TMP_DIR/$TARBALL"
 elif command -v wget &>/dev/null; then
     wget -q "$DOWNLOAD_URL" -O "$TMP_DIR/$TARBALL"
 else
-    echo "tide: need curl or wget to download. Install one and retry."
+    echo "tide: need curl or wget to download."
     exit 1
 fi
 
@@ -66,5 +67,5 @@ else
     sudo install -m 755 "$BINARY" "$INSTALL_DIR/$BINARY"
 fi
 
-echo "✓ tide installed to $INSTALL_DIR/$BINARY"
+echo "✓ tide ${LATEST} installed to $INSTALL_DIR/$BINARY"
 echo "  Run 'tide --help' to get started."

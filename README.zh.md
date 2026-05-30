@@ -1,55 +1,58 @@
-# tide
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/tide-111?style=flat&logo=terminal&logoColor=white&labelColor=111">
+  <img alt="tide" src="https://img.shields.io/badge/tide-111?style=flat&logo=terminal&logoColor=white&labelColor=111">
+</picture>
 
-> 终端里的高速 RSS 阅读器。
+[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/0xfig521/tide?style=flat)](https://github.com/0xfig521/tide/releases)
 
-**tide** 把你的信息流搬进命令行。订阅源、分类管理、搜索阅读，全都输出干净的 JSON，方便管道和脚本对接。
-
----
-
-## 为什么用 tide？
-
-- **全程 JSON** — 所有命令输出结构化 JSON。`jq`、`fzf`、脚本随便接。
-- **并发抓取** — 同时拉取数十个源，带进度条。
-- **智能缓存** — 基于 ETag 的条件请求，不浪费带宽。
-- **分类管理** — 按分类组织源，按分类筛选浏览。
-- **分页 + 时间过滤** — `--page`、`--page-size`、`--since 24h`，快速定位。
-- **守护模式** — `tide fetch --daemon` 后台定时抓取。
+[English](./README.md) | 中文
 
 ---
+
+一个高速并发的终端 RSS 阅读器。`tide` 将订阅源存入 SQLite，并行抓取，所有输出为 JSON — 方便管道、脚本或直接浏览。
+
+## 特性
+
+- **⚡ 高并发** — 同时拉取数十个源，带进度条
+- **📦 零依赖** — 单文件二进制，SQLite 内嵌，无需运行时
+- **🗃️ 分类管理** — 组织源，按分类过滤
+- **🔍 全文搜索** — 标题、摘要、正文
+- **📡 智能缓存** — ETag / Last-Modified 条件请求，不浪费带宽
+- **⏱️ 时间过滤** — `--since 24h`、`--since 7d`
+- **📄 分页** — `--page`、`--page-size`
+- **🤖 守护模式** — `tide fetch --daemon` 后台定时抓取
 
 ## 安装
 
 ```bash
-# 一行安装（推荐）
+# macOS / Linux — 一行安装
 curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
 
 # Homebrew
 brew install ./Formula/tide.rb
 
-# Go 工具链
+# Go
 go install github.com/0xfig521/tide@latest
 ```
-
-Shell 脚本自动识别系统和架构，下载最新二进制，安装到 `/usr/local/bin`。
-
----
 
 ## 快速上手
 
 ```bash
-# 添加第一个源
+# 订阅
 tide add "https://blog.golang.org/feed.atom" --category "技术"
 
-# 抓取文章（10 并发）
+# 抓取（10 并发）
 tide fetch --concurrency 10
 
-# 查看 24 小时内的未读
+# 查看 24 小时内未读
 tide list --unread --since 24h
 
-# 搜索
+# 全文搜索
 tide search "kubernetes"
 
-# 标记已读、收藏
+# 已读、收藏
 tide read 3
 tide star 7
 
@@ -57,29 +60,32 @@ tide star 7
 tide list --unread | jq '.items[] | {title, feed_title}'
 ```
 
----
-
 ## 命令一览
 
 | 命令 | 用途 |
-|------|------|
-| `add <url> --category <name>` | 添加订阅源 |
+|---|---|
+| `add <url> [-c <cat>]` | 添加订阅 |
 | `remove <id>` | 取消订阅 |
-| `sources` | 查看所有订阅源 |
-| `list` | 浏览文章，支持筛选、分页、时间范围 |
-| `search <keyword>` | 全文搜索 |
-| `unread` | 查看未读 |
-| `fetch` | 拉取最新文章 |
+| `sources` | 查看所有源 |
+| `list` | 浏览文章（支持筛选、分页、时间范围）|
+| `search <kw>` | 全文搜索 |
+| `unread` | 未读文章 |
+| `fetch [--force]` | 拉取最新 |
 | `fetch --daemon` | 后台定时拉取 |
 | `read <id>` | 标为已读 |
-| `star <id>` | 收藏 / 取消收藏 |
-| `category create/list/assign/remove` | 分类管理 |
-| `info <id>` | 查看源详情 |
+| `star <id>` | 收藏 / 取消 |
+| `category` | 分类管理（create/list/assign/remove）|
+| `info <id>` | 源详情 |
 
----
+所有命令默认输出 JSON。`list` 支持 `--format table` 切换为终端表格。
 
 ## 技术栈
 
-- [gofeed](https://github.com/mmcdole/gofeed) — RSS/Atom/JSON Feed 解析
-- [SQLite](https://sqlite.org) — 嵌入式数据库，零配置
-- [cobra](https://github.com/spf13/cobra) — CLI 框架
+- [gofeed](https://github.com/mmcdole/gofeed) · RSS/Atom/JSON Feed 解析
+- [SQLite](https://sqlite.org) · 嵌入式数据库
+- [cobra](https://github.com/spf13/cobra) · CLI 框架
+- [lipgloss](https://github.com/charmbracelet/lipgloss) · 终端样式
+
+## 许可
+
+[MIT](./LICENSE)
