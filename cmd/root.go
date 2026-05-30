@@ -29,7 +29,7 @@ var rootCmd = &cobra.Command{
 It uses SQLite for storage and supports categories, search, and more.
 
 All commands output JSON to stdout by default. Progress, logs, and diagnostics
-go to stderr. Use --format table on supported commands for human-readable output.`,
+go to stderr.`,
 	SilenceUsage: true,
 	Version:      version,
 }

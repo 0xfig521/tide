@@ -272,13 +272,13 @@ func (r *FeedRepo) GetCategories(feedID int64) ([]string, error) {
 	return names, rows.Err()
 }
 
-// GetEntryCount returns the total and unread entry counts for a feed.
-func (r *FeedRepo) GetEntryCount(feedID int64) (total, unread int, err error) {
-	err = r.db.Conn.QueryRow(`
-		SELECT COUNT(*), COALESCE(SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END), 0)
-		FROM entries WHERE feed_id = ?
-	`, feedID).Scan(&total, &unread)
-	return
+// GetEntryCount returns the total entry count for a feed.
+func (r *FeedRepo) GetEntryCount(feedID int64) (int, error) {
+	var total int
+	err := r.db.Conn.QueryRow(`
+		SELECT COUNT(*) FROM entries WHERE feed_id = ?
+	`, feedID).Scan(&total)
+	return total, err
 }
 
 // parseTime parses a time string, returning nil on empty/error.

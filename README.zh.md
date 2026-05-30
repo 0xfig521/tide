@@ -54,18 +54,14 @@ tide add "https://blog.golang.org/feed.atom" --category "技术"
 # 抓取（10 并发）
 tide fetch --concurrency 10
 
-# 查看 24 小时内未读
-tide list --unread --since 24h
-
 # 全文搜索
-tide search "kubernetes"
+tide search "kubernetes" --since 7d
 
-# 已读、收藏
-tide read 3
-tide star 7
+# 获取完整内容
+tide get 42
 
 # 管道对接
-tide list --unread | jq '.data.items[] | {title, feed_title}'
+tide list --json | jq '.data.items[] | {title, feed_title}'
 ```
 
 ## 命令一览
@@ -77,19 +73,15 @@ tide list --unread | jq '.data.items[] | {title, feed_title}'
 | `sources` | 查看所有源 |
 | `import <file>` | 从 OPML 文件导入订阅 |
 | `export [--output <f>]` | 导出订阅为 OPML（stdout 或文件）|
-| `list` | 浏览文章（支持筛选、分页、时间范围）|
+| `list` | 浏览文章（CSV 默认，`--json` 切换 JSON）|
 | `search <kw>` | 全文搜索（FTS5）|
-| `unread` | 未读文章 |
 | `get <id>` | 获取文章完整详情（描述、正文）|
 | `fetch [--force]` | 拉取最新 |
 | `schedule` | 管理后台守护进程（start/stop/status/logs）|
-| `read <id>` | 标为已读 |
-| `star <id>` | 收藏 / 取消 |
 | `category` | 分类管理（create/list/assign/remove）|
 | `upgrade` | 自更新到最新版本 |
-| `info <id>` | 源详情 |
 
-所有命令默认输出 JSON（稳定 `{ok, data, error, meta}` 信封）。`list` 支持 `--format table` 切换为终端表格。错误返回非零退出码和结构化错误码。
+所有命令默认输出 JSON（稳定 `{ok, data, error, meta}` 信封）。错误返回非零退出码和结构化错误码。
 
 ## 定时抓取
 
@@ -165,7 +157,6 @@ Tide 说一种语言：JSON。每个命令返回稳定信封：
 tide fetch --quiet                     # 静默抓取，stdout 纯 JSON
 tide search "rust async" --since 7d    # FTS5 全文搜索近 7 天
 tide get 42                            # 获取完整条目（含描述和正文）
-tide read 42                           # 标记已读
 ```
 
 安装 skill 后，AI 助手可直接管理 RSS：

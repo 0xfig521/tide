@@ -158,7 +158,7 @@ export function Features() {
                     </div>
                     <div className="text-terminal-dim p-2.5 rounded bg-black/30 border border-white/5 text-[10px]">
                       <span className="text-brand-violet font-semibold">Agent: </span>
-                      <span className="text-brand-cyan">tide list --unread --category tech</span>
+                      <span className="text-brand-cyan">tide list --category tech --json</span>
                       <div className="mt-1.5 text-white/40 text-[9px] border-t border-white/5 pt-1.5">
                         Calling Tide binary via skills.sh definition...
                       </div>

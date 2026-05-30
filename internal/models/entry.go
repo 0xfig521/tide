@@ -15,8 +15,6 @@ type Entry struct {
 	ImageURL    string     `json:"image_url,omitempty"`
 	Categories  string     `json:"categories,omitempty"` // JSON array string
 	PublishedAt *time.Time `json:"published_at"`
-	IsRead      bool       `json:"is_read"`
-	IsStarred   bool       `json:"is_starred"`
 	Hash        string     `json:"-"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
@@ -29,14 +27,12 @@ type EntryOutput struct {
 	ID          int64  `json:"id"`
 	Title       string `json:"title"`
 	URL         string `json:"url"`
-	Author      string `json:"author,omitempty"`
-	PublishedAt string `json:"published_at,omitempty"`
+	Author      string `json:"author"`
+	PublishedAt string `json:"published_at"`
 	FeedTitle   string `json:"feed_title,omitempty"`
 	FeedID      int64  `json:"feed_id"`
-	Description string `json:"description,omitempty"`
-	Content     string `json:"content,omitempty"`
-	Categories  string `json:"categories,omitempty"`
+	Description string `json:"description"`
+	Content     string `json:"content"`
+	Categories  string `json:"categories"`
 	GUID        string `json:"guid,omitempty"`
-	IsRead      bool   `json:"is_read"`
-	IsStarred   bool   `json:"is_starred"`
 }

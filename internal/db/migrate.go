@@ -12,6 +12,7 @@ func (db *DB) migrate() error {
 	}{
 		{1, schemaV1},
 		{2, schemaV2},
+		{3, schemaV3},
 	}
 
 	// Create schema version table if not exists
@@ -133,4 +134,43 @@ CREATE TRIGGER IF NOT EXISTS entries_au AFTER UPDATE ON entries BEGIN
     INSERT INTO entries_fts(rowid, title, description, content)
     VALUES (new.id, new.title, new.description, new.content);
 END;
+`
+
+const schemaV3 = `
+DROP INDEX IF EXISTS idx_entries_is_read;
+DROP INDEX IF EXISTS idx_entries_is_starred;
+
+ALTER TABLE entries RENAME TO entries_old;
+
+CREATE TABLE entries (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    feed_id         INTEGER NOT NULL,
+    title           TEXT NOT NULL DEFAULT '',
+    url             TEXT NOT NULL,
+    guid            TEXT NOT NULL,
+    content         TEXT DEFAULT '',
+    description     TEXT DEFAULT '',
+    author_name     TEXT DEFAULT '',
+    image_url       TEXT DEFAULT '',
+    categories      TEXT DEFAULT '',
+    published_at    TEXT,
+    updated_at      TEXT DEFAULT (datetime('now')),
+    hash            TEXT NOT NULL,
+    created_at      TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (feed_id) REFERENCES feeds(id) ON DELETE CASCADE
+);
+
+INSERT INTO entries
+  (id, feed_id, title, url, guid, content, description, author_name,
+   image_url, categories, published_at, updated_at, hash, created_at)
+SELECT
+  id, feed_id, title, url, guid, content, description, author_name,
+  image_url, categories, published_at, updated_at, hash, created_at
+FROM entries_old;
+
+DROP TABLE entries_old;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_entries_hash ON entries(feed_id, hash);
+CREATE INDEX IF NOT EXISTS idx_entries_feed_id ON entries(feed_id);
+CREATE INDEX IF NOT EXISTS idx_entries_published_at ON entries(published_at DESC);
 `

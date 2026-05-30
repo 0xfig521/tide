@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"encoding/csv"
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -14,34 +17,25 @@ var (
 	listKeyword  string
 	listCategory string
 	listFeedID   int64
-	listUnread   bool
-	listStarred  bool
 	listSince    string
 	listPage     int
 	listPageSize int
-	listFormat   string
+	listJSON     bool
 )
+
+var csvHeaders = []string{"id", "title", "url", "author", "published_at", "feed_id", "feed_title", "description", "categories", "guid"}
 
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List articles with filtering and pagination",
-	Long: `List articles. Default output is JSON.
+	Long: `List articles. Default output is CSV for compact AI context.
 
-Examples:
-  tide list                          # All articles, page 1, 20 per page
-  tide list --unread                 # Unread articles
-  tide list --unread --since 24h     # Unread from last 24 hours
-  tide list --search golang          # Search by keyword
-  tide list --category tech --page 2 # Category filtered, page 2
-  tide list --page-size 50           # 50 per page
-  tide list --format table           # Terminal table view`,
+Use --json for full JSON envelope output.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		q := repo.EntryQuery{
 			Keyword:      listKeyword,
 			CategoryName: listCategory,
 			FeedID:       listFeedID,
-			UnreadOnly:   listUnread,
-			StarredOnly:  listStarred,
 			Since:        sinceExpr(listSince),
 			Page:         listPage,
 			PageSize:     listPageSize,
@@ -52,46 +46,29 @@ Examples:
 			return output.PrintError(output.CodeInternalError, fmt.Sprintf("List failed: %v", err))
 		}
 
-		if listFormat == "table" {
-			if len(entries) == 0 {
-				output.PrintTable(output.Warn("No articles found."))
-				return nil
-			}
-			headers := []string{"ID", "Title", "Feed", "Date", "★"}
-			var rows [][]string
+		if listJSON {
+			total, _ := entryRepo().CountEntries(q)
+			outputs := make([]models.EntryOutput, 0, len(entries))
 			for _, e := range entries {
-				star := ""
-				if e.IsStarred {
-					star = "★"
-				}
-				pubDate := ""
-				if e.PublishedAt != nil {
-					pubDate = e.PublishedAt.Format("01-02 15:04")
-				}
-				rows = append(rows, []string{
-					fmt.Sprintf("%d", e.ID),
-					truncate(e.Title, 50),
-					truncate(e.FeedTitle, 20),
-					pubDate,
-					star,
-				})
+				outputs = append(outputs, entryToFullOutput(e))
 			}
-			output.PrintTable(output.EntryTable(headers, rows))
+			output.PrintSuccess(map[string]any{
+				"items":     outputs,
+				"total":     total,
+				"page":      q.Page,
+				"page_size": q.PageSize,
+			}, nil)
 			return nil
 		}
 
-		total, _ := entryRepo().CountEntries(q)
-		outputs := make([]models.EntryOutput, 0, len(entries))
+		// Default: CSV output
+		w := csv.NewWriter(os.Stdout)
+		w.Write(csvHeaders)
 		for _, e := range entries {
-			outputs = append(outputs, entryToOutput(e))
+			w.Write(entryToCSV(e))
 		}
-		output.PrintSuccess(map[string]any{
-			"items":     outputs,
-			"total":     total,
-			"page":      q.Page,
-			"page_size": q.PageSize,
-		}, nil)
-		return nil
+		w.Flush()
+		return w.Error()
 	},
 }
 
@@ -99,12 +76,10 @@ func init() {
 	listCmd.Flags().StringVar(&listKeyword, "search", "", "Search keyword")
 	listCmd.Flags().StringVarP(&listCategory, "category", "c", "", "Filter by category")
 	listCmd.Flags().Int64Var(&listFeedID, "feed", 0, "Filter by feed ID")
-	listCmd.Flags().BoolVarP(&listUnread, "unread", "u", false, "Only unread articles")
-	listCmd.Flags().BoolVar(&listStarred, "starred", false, "Only starred articles")
 	listCmd.Flags().StringVar(&listSince, "since", "", "Time range (1h, 6h, 12h, 24h, 3d, 7d, 14d, 30d)")
 	listCmd.Flags().IntVarP(&listPage, "page", "p", 1, "Page number")
 	listCmd.Flags().IntVar(&listPageSize, "page-size", 20, "Articles per page")
-	listCmd.Flags().StringVar(&listFormat, "format", "", "Output format: 'table' (default: JSON)")
+	listCmd.Flags().BoolVar(&listJSON, "json", false, "Output as JSON instead of CSV")
 	rootCmd.AddCommand(listCmd)
 }
 
@@ -131,7 +106,26 @@ func sinceExpr(s string) string {
 	}
 }
 
-func entryToOutput(e *models.Entry) models.EntryOutput {
+func entryToCSV(e *models.Entry) []string {
+	pubDate := ""
+	if e.PublishedAt != nil {
+		pubDate = e.PublishedAt.Format("2006-01-02 15:04:05")
+	}
+	return []string{
+		strconv.FormatInt(e.ID, 10),
+		e.Title,
+		e.URL,
+		e.AuthorName,
+		pubDate,
+		strconv.FormatInt(e.FeedID, 10),
+		e.FeedTitle,
+		e.Description,
+		e.Categories,
+		e.GUID,
+	}
+}
+
+func entryToFullOutput(e *models.Entry) models.EntryOutput {
 	pubDate := ""
 	if e.PublishedAt != nil {
 		pubDate = e.PublishedAt.Format("2006-01-02 15:04:05")
@@ -142,13 +136,5 @@ func entryToOutput(e *models.Entry) models.EntryOutput {
 		FeedTitle: e.FeedTitle, FeedID: e.FeedID,
 		Description: e.Description, Content: e.Content,
 		Categories: e.Categories, GUID: e.GUID,
-		IsRead: e.IsRead, IsStarred: e.IsStarred,
 	}
-}
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n-3] + "..."
 }

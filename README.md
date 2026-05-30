@@ -54,18 +54,14 @@ tide add "https://blog.golang.org/feed.atom" --category "Tech"
 # Fetch (10 concurrent workers)
 tide fetch --concurrency 10
 
-# Browse unread from last 24h
-tide list --unread --since 24h
-
 # Full-text search
-tide search "kubernetes"
+tide search "kubernetes" --since 7d
 
-# Mark read, star
-tide read 3
-tide star 7
+# Get full content
+tide get 42
 
 # Pipe to jq
-tide list --unread | jq '.data.items[] | {title, feed_title}'
+tide list --json | jq '.data.items[] | {title, feed_title}'
 ```
 
 ## For AI Agents
@@ -87,7 +83,6 @@ No parsing hacks required:
 tide fetch --quiet                     # silent fetch, JSON result on stdout
 tide search "rust async" --since 7d    # FTS5 search, last 7 days
 tide get 42                            # full entry with description + content
-tide read 42                           # mark as read
 ```
 
 Install the skill once and your agent knows every command:
@@ -107,19 +102,15 @@ Full skill at [`tide/SKILL.md`](./tide/SKILL.md).
 | `sources` | List subscriptions |
 | `import <file>` | Import feeds from OPML file |
 | `export [--output <f>]` | Export feeds to OPML (stdout or file) |
-| `list` | Browse articles (filters, pagination, time range) |
+| `list` | Browse articles (CSV default, `--json` for JSON) |
 | `search <kw>` | Full-text search (FTS5) |
-| `unread` | Unread articles |
 | `get <id>` | Get full entry details (description, content) |
 | `fetch [--force]` | Pull latest from feeds |
 | `schedule` | Manage background daemon (start/stop/status/logs) |
-| `read <id>` | Mark as read |
-| `star <id>` | Bookmark / unbookmark |
 | `category` | Manage categories (create/list/assign/remove) |
 | `upgrade` | Self-update to the latest version |
-| `info <id>` | Feed details |
 
-All commands output JSON by default (stable `{ok, data, error, meta}` envelope). Use `--format table` on `list` for a terminal view. Errors return non-zero exit codes with structured error codes.
+All commands output JSON by default (stable `{ok, data, error, meta}` envelope). Errors return non-zero exit codes with structured error codes.
 
 ## Scheduled Fetching
 

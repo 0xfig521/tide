@@ -76,12 +76,6 @@ func PrintError(code ErrorCode, msg string) *CmdError {
 	return NewCmdError(code, msg)
 }
 
-// PrintTable writes a plain string to stdout (no JSON wrapping).
-// Only used when --format table is explicitly requested.
-func PrintTable(s string) {
-	fmt.Println(s)
-}
-
 // PrintPlain writes a plain string to stdout.
 // For commands that intentionally produce non-JSON output (e.g., schedule logs).
 func PrintPlain(s string) {

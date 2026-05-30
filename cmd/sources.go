@@ -27,7 +27,7 @@ var sourcesCmd = &cobra.Command{
 		outputs := make([]models.FeedOutput, 0, len(feeds))
 		for _, f := range feeds {
 			cats, _ := feedRepo().GetCategories(f.ID)
-			total, unread, _ := feedRepo().GetEntryCount(f.ID)
+			total, _ := feedRepo().GetEntryCount(f.ID)
 			lastFetched := ""
 			if f.LastFetchedAt != nil {
 				lastFetched = f.LastFetchedAt.Format("2006-01-02 15:04:05")
@@ -36,7 +36,7 @@ var sourcesCmd = &cobra.Command{
 				ID: f.ID, Title: f.Title, FeedURL: f.FeedURL,
 				SiteURL: f.SiteURL, Description: f.Description,
 				ImageURL: f.ImageURL, Categories: cats,
-				EntryCount: total, UnreadCount: unread,
+				EntryCount:  total,
 				LastFetched: lastFetched, IsActive: f.IsActive,
 			})
 		}

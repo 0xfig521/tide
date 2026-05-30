@@ -56,7 +56,7 @@ export const translations: Record<Locale, TranslationSchema> = {
       description1:
         "Tide ships with a skills.sh definition for AI coding agents — Claude Code, Codex, Cursor, and more. Install once, and your agent gets full knowledge of every command, flag, and workflow.",
       description2:
-        'Say "find me the top 5 unread articles about Rust this week" and it just works. No parsing HTML, no scraping, no regex. Pure JSON.',
+        'Say "find me the top 5 articles about Rust this week" and it just works. No parsing HTML, no scraping, no regex. Pure JSON.',
       cardSubtitle: "RSS management for AI agents",
       copyCommand: "Copy command",
     },
@@ -90,7 +90,7 @@ export const translations: Record<Locale, TranslationSchema> = {
       description1:
         "Tide 内置了面向 AI 编程助手的 skills.sh 技能定义 — 支持 Claude Code、Codex、Cursor 等。安装一次，你的智能体就能掌握所有命令、参数和工作流。",
       description2:
-        "说一句「帮我找出本周 Rust 相关的 5 篇未读文章」，它就能做到。无需解析 HTML、无需抓取、无需正则。纯 JSON。",
+        "说一句「帮我找出本周 Rust 相关的 5 篇文章」，它就能做到。无需解析 HTML、无需抓取、无需正则。纯 JSON。",
       cardSubtitle: "AI 智能体的 RSS 管理工具",
       copyCommand: "复制命令",
     },

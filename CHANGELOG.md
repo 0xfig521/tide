@@ -1,3 +1,24 @@
+## 0.5.1 - 2026-05-31
+
+### Breaking Changes
+- Remove human-oriented commands: `read`, `unread`, `star`, `info` — Tide is now purely agent-oriented
+- Remove `--unread`, `--starred`, `--format table` flags from `list` and `search` commands
+- Drop `is_read` and `is_starred` columns from entries table (schema migration v3)
+- Remove `UnreadCount` from feed output; `GetEntryCount` now returns only total count
+- Remove `ListUnread`, `ListStarred`, `MarkRead`, `MarkUnread`, `ToggleStar`, `MarkAllRead` repo methods
+- Remove `EntryTable`, `FeedTable`, `CategoryTable`, `PrintTable` from output package (no more human-facing tables)
+
+### Features
+- `tide list` now defaults to compact CSV output for minimal AI context usage; `--json` flag for full JSON
+- CSV columns: id, title, url, author, published_at, feed_id, feed_title, description, categories, guid
+- `content` field excluded from list CSV — use `tide get <id>` for full content
+- `description`, `author`, `published_at`, `categories` fields always present in entry output
+
+### Documentation
+- Update web components (QuickStart, Hero, AISkill, Features) to reflect agent-only command set
+- Update i18n translations to remove human-oriented terminology
+- Sync README, README.zh, and SKILL.md with CSV default and removed commands
+
 ## 0.5.0 - 2026-05-30
 
 ### Features

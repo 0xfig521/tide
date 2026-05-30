@@ -26,7 +26,7 @@ Examples:
 			return output.PrintError(output.CodeEntryNotFound, "entry not found")
 		}
 
-		output.PrintSuccess(entryToOutput(entry), nil)
+		output.PrintSuccess(entryToFullOutput(entry), nil)
 		return nil
 	},
 }

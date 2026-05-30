@@ -13,8 +13,6 @@ import (
 var (
 	searchCategory string
 	searchFeedID   int64
-	searchUnread   bool
-	searchStarred  bool
 	searchLimit    int
 )
 
@@ -27,8 +25,6 @@ var searchCmd = &cobra.Command{
 			Keyword:      args[0],
 			CategoryName: searchCategory,
 			FeedID:       searchFeedID,
-			UnreadOnly:   searchUnread,
-			StarredOnly:  searchStarred,
 			Page:         1,
 			PageSize:     searchLimit,
 		}
@@ -41,7 +37,7 @@ var searchCmd = &cobra.Command{
 		total, _ := entryRepo().CountEntries(q)
 		outputs := make([]models.EntryOutput, 0, len(entries))
 		for _, e := range entries {
-			outputs = append(outputs, entryToOutput(e))
+			outputs = append(outputs, entryToFullOutput(e))
 		}
 		output.PrintSuccess(map[string]any{
 			"items": outputs, "total": total, "page": 1, "page_size": searchLimit,
@@ -53,8 +49,6 @@ var searchCmd = &cobra.Command{
 func init() {
 	searchCmd.Flags().StringVarP(&searchCategory, "category", "c", "", "Filter by category")
 	searchCmd.Flags().Int64Var(&searchFeedID, "feed", 0, "Filter by feed ID")
-	searchCmd.Flags().BoolVar(&searchUnread, "unread", false, "Only unread entries")
-	searchCmd.Flags().BoolVar(&searchStarred, "starred", false, "Only starred entries")
 	searchCmd.Flags().IntVarP(&searchLimit, "limit", "n", 50, "Maximum results")
 	rootCmd.AddCommand(searchCmd)
 }

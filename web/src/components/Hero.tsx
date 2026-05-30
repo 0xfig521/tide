@@ -3,7 +3,7 @@ import gsap from "gsap"
 import { useLocale } from "../i18n/context"
 import { Sparkle, Terminal, ArrowRight, Rss, Brain, BookOpen } from "@phosphor-icons/react"
 
-const TYPING_TEXT = "tide list --unread --since 24h --limit 3"
+const TYPING_TEXT = "tide list --since 24h"
 
 const MOCK_ARTICLES = [
   {
@@ -12,7 +12,6 @@ const MOCK_ARTICLES = [
     feed: "Go Blog",
     published: "4h ago",
     category: "AI & Go",
-    unread: true,
     summary: "How to bundle a fully functional AI-native RSS parsing engine into a zero-dependency Go CLI.",
   },
   {
@@ -21,7 +20,6 @@ const MOCK_ARTICLES = [
     feed: "DevTo",
     published: "12h ago",
     category: "CLI Design",
-    unread: true,
     summary: "Traditional scraping is fragile. JSON structured output ensures LLMs never break during orchestration.",
   },
   {
@@ -30,7 +28,6 @@ const MOCK_ARTICLES = [
     feed: "Hacker News",
     published: "1d ago",
     category: "AI Agents",
-    unread: true,
     summary: "How standard RSS feeds are turning into high-density memory pools for autonomous software developers.",
   },
 ]
@@ -293,13 +290,11 @@ export function Hero() {
                       {"  "}<span className="text-white/40">{"{"}</span>{"\n"}
                       {"    "}<span className="text-brand-pink">"id"</span>: <span className="text-brand-cyan">1</span>,{"\n"}
                       {"    "}<span className="text-brand-pink">"title"</span>: <span className="text-terminal-green">"Building AI Agents with Go & SQLite"</span>,{"\n"}
-                      {"    "}<span className="text-brand-pink">"feed"</span>: <span className="text-brand-cyan">"Go Blog"</span>,{"\n"}
-                      {"    "}<span className="text-brand-pink">"unread"</span>: <span className="text-brand-violet">true</span>{"\n"}
+                      {"    "}<span className="text-brand-pink">"feed"</span>: <span className="text-brand-cyan">"Go Blog"</span>{"\n"}
                       {"  "}<span className="text-white/40">{"}"}</span>,{"\n"}
                       {"  "}<span className="text-white/40">{"{"}</span>{"\n"}
                       {"    "}<span className="text-brand-pink">"id"</span>: <span className="text-brand-cyan">2</span>,{"\n"}
-                      {"    "}<span className="text-brand-pink">"title"</span>: <span className="text-terminal-green">"Why JSON-Native Output Rules CLI Tools"</span>,{"\n"}
-                      {"    "}<span className="text-brand-pink">"unread"</span>: <span className="text-brand-violet">true</span>{"\n"}
+                      {"    "}<span className="text-brand-pink">"title"</span>: <span className="text-terminal-green">"Why JSON-Native Output Rules CLI Tools"</span>{"\n"}
                       {"  "}<span className="text-white/40">{"}"}</span>{"\n"}
                       <span className="text-white/40">{"]"}</span>
                     </code>

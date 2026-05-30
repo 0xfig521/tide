@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
 )
 
 var (
@@ -21,56 +20,9 @@ var (
 			Foreground(accentColor).Bold(true)
 	highlightStyle = lipgloss.NewStyle().
 			Foreground(goodColor).Bold(true)
-	dimStyle = lipgloss.NewStyle().
-			Foreground(dimColor)
 	errorStyle = lipgloss.NewStyle().
 			Foreground(errorColor).Bold(true)
 )
-
-// FeedTable renders a table of feeds.
-func FeedTable(headers []string, rows [][]string) string {
-	t := table.New().
-		Border(lipgloss.NormalBorder()).
-		BorderStyle(lipgloss.NewStyle().Foreground(dimColor)).
-		StyleFunc(func(row, col int) lipgloss.Style {
-			switch {
-			case row == 0: // header
-				return headerStyle
-			case col == 0: // first column (ID/title)
-				return highlightStyle
-			default:
-				return lipgloss.NewStyle()
-			}
-		}).
-		Headers(headers...).
-		Rows(rows...)
-	return t.Render()
-}
-
-// CategoryTable renders a table of categories.
-func CategoryTable(headers []string, rows [][]string) string {
-	return FeedTable(headers, rows)
-}
-
-// EntryTable renders a table of entries.
-func EntryTable(headers []string, rows [][]string) string {
-	t := table.New().
-		Border(lipgloss.NormalBorder()).
-		BorderStyle(lipgloss.NewStyle().Foreground(dimColor)).
-		StyleFunc(func(row, col int) lipgloss.Style {
-			switch {
-			case row == 0:
-				return headerStyle
-			case col == 1: // title column - highlight
-				return highlightStyle
-			default:
-				return lipgloss.NewStyle()
-			}
-		}).
-		Headers(headers...).
-		Rows(rows...)
-	return t.Render()
-}
 
 // InfoPanel renders a detail panel for a single item.
 func InfoPanel(sections map[string]string) string {
@@ -84,11 +36,10 @@ func InfoPanel(sections map[string]string) string {
 		}
 		b.WriteString(headerStyle.Render(fmt.Sprintf("  %-16s", label)))
 		b.WriteString("  ")
-		// Truncate long URLs for display
 		if len(value) > 100 {
 			value = value[:97] + "..."
 		}
-		b.WriteString(dimStyle.Render(value))
+		b.WriteString(lipgloss.NewStyle().Foreground(dimColor).Render(value))
 		b.WriteString("\n")
 	}
 	return b.String()
@@ -99,12 +50,12 @@ func Success(msg string) string {
 	return highlightStyle.Render("✓") + " " + msg
 }
 
-// ErrorMsg prints an error message.
-func ErrorMsg(msg string) string {
-	return errorStyle.Render("✗") + " " + msg
-}
-
 // Warn prints a warning message.
 func Warn(msg string) string {
 	return lipgloss.NewStyle().Foreground(warnColor).Render("!") + " " + msg
+}
+
+// ErrorMsg prints an error message.
+func ErrorMsg(msg string) string {
+	return errorStyle.Render("✗") + " " + msg
 }
