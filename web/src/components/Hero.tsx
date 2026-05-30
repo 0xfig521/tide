@@ -252,8 +252,8 @@ export function Hero() {
               <div className="w-12 h-1" /> {/* Spacer */}
             </div>
 
-            {/* Terminal Body */}
-            <div className="p-6 sm:p-8 font-mono text-sm leading-relaxed min-h-[400px] flex flex-col justify-between text-left">
+            {/* Terminal Body with rigid fixed heights on mobile & desktop to prevent screen flickering */}
+            <div className="p-6 sm:p-8 font-mono text-sm leading-relaxed h-[430px] sm:h-[460px] flex flex-col justify-between text-left overflow-hidden">
               <div>
                 {/* Shell Prompt */}
                 <div className="flex items-center gap-2.5 text-white/90">
@@ -266,12 +266,15 @@ export function Hero() {
                     />
                   </span>
                 </div>
+              </div>
 
+              {/* Display Canvas Area (Absolute container stack ensures 0% DOM layout shift!) */}
+              <div className="relative flex-1 w-full mt-5 min-h-[280px] overflow-hidden">
                 {/* Syntax Highlighted JSON Output */}
                 {showJson && (
                   <pre
                     ref={jsonRef}
-                    className={`mt-6 text-xs sm:text-sm overflow-hidden transition-all duration-500 rounded bg-black/40 border border-white/5 p-5 text-white/80 ${
+                    className={`absolute inset-x-0 top-0 text-xs sm:text-sm overflow-hidden rounded bg-black/40 border border-white/5 p-5 text-white/80 ${
                       glowActive
                         ? "shadow-[0_0_30px_rgba(16,185,129,0.15)] border-terminal-green/30 scale-[1.01] transition-all duration-300"
                         : ""
@@ -297,46 +300,46 @@ export function Hero() {
 
                 {/* Transform Glow Line */}
                 {glowActive && (
-                  <div className="h-0.5 bg-gradient-to-r from-transparent via-terminal-green to-transparent w-full blur-[1px] mt-6 animate-pulse" />
+                  <div className="absolute inset-x-0 top-36 h-0.5 bg-gradient-to-r from-transparent via-terminal-green to-transparent w-full blur-[1px] animate-pulse z-10" />
+                )}
+
+                {/* Render Visual RSS Cards */}
+                {showCards && (
+                  <div ref={cardsContainerRef} className="absolute inset-x-0 top-0 flex flex-col gap-3 w-full">
+                    {MOCK_ARTICLES.map((article) => (
+                      <div
+                        key={article.id}
+                        className="rss-demo-card group/card relative rounded-xl border border-white/5 bg-slate-900/60 p-3.5 hover:border-brand-cyan/30 hover:bg-slate-900/90 transition-all duration-300 cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-brand-cyan px-2 py-0.5 rounded bg-brand-cyan/10 border border-brand-cyan/15">
+                              {article.category}
+                            </span>
+                            <span className="text-[11px] text-white/40 flex items-center gap-1">
+                              <BookOpen size={12} /> {article.feed}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-white/40">{article.published}</span>
+                            <span className="h-1.5 w-1.5 rounded-full bg-terminal-green animate-pulse" />
+                          </div>
+                        </div>
+
+                        <h3 className="mt-2 text-xs font-semibold text-white/95 group-hover/card:text-brand-cyan transition-colors duration-300">
+                          {article.title}
+                        </h3>
+                        <p className="mt-1 text-[11px] text-terminal-dim leading-relaxed line-clamp-1">
+                          {article.summary}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Render Visual RSS Cards */}
-              {showCards && (
-                <div ref={cardsContainerRef} className="mt-6 flex flex-col gap-3.5 w-full">
-                  {MOCK_ARTICLES.map((article) => (
-                    <div
-                      key={article.id}
-                      className="rss-demo-card group/card relative rounded-xl border border-white/5 bg-slate-900/60 p-4 hover:border-brand-cyan/30 hover:bg-slate-900/90 transition-all duration-300 cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-brand-cyan px-2 py-0.5 rounded bg-brand-cyan/10 border border-brand-cyan/15">
-                            {article.category}
-                          </span>
-                          <span className="text-[11px] text-white/40 flex items-center gap-1">
-                            <BookOpen size={12} /> {article.feed}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-white/40">{article.published}</span>
-                          <span className="h-1.5 w-1.5 rounded-full bg-terminal-green animate-pulse" />
-                        </div>
-                      </div>
-
-                      <h3 className="mt-2 text-sm font-semibold text-white/95 group-hover/card:text-brand-cyan transition-colors duration-300">
-                        {article.title}
-                      </h3>
-                      <p className="mt-1.5 text-xs text-terminal-dim leading-relaxed line-clamp-2">
-                        {article.summary}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Action Bar showing 'structured JSON to visual cards' */}
-              <div className="mt-8 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-white/30">
+              <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-white/30">
                 <span className="flex items-center gap-1.5">
                   <Brain size={14} className="text-brand-violet" />
                   Parsed by Autonomous Agent
