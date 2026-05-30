@@ -5,11 +5,11 @@ export function Footer() {
   const { t } = useLocale()
 
   return (
-    <footer className="relative border-t border-terminal-border py-12 mt-12 bg-black/20 overflow-hidden">
+    <footer className="relative border-t border-white/5 py-12 mt-12 bg-black/20 overflow-hidden flex justify-center w-full">
       {/* Subtle bottom grid overlay */}
       <div className="absolute inset-0 cyber-grid opacity-10 pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto px-6 relative z-10">
+      <div className="w-full max-w-5xl px-6 relative z-10">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-8">
           
           {/* Logo & Operational Status */}

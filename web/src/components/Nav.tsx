@@ -20,18 +20,18 @@ export function Nav() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out px-4 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out px-4 flex justify-center w-full ${
         scrolled ? "pt-3" : "pt-6"
       }`}
     >
       <nav
-        className={`max-w-6xl mx-auto rounded-full transition-all duration-500 ease-out border ${
+        className={`w-full max-w-5xl rounded-full transition-all duration-500 ease-out border ${
           scrolled
             ? "glass-panel bg-opacity-70 shadow-2xl py-3 px-6"
             : "border-transparent bg-transparent py-4 px-6"
         }`}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between w-full">
           {/* Logo */}
           <a
             href="#"

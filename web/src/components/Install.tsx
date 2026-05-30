@@ -41,7 +41,6 @@ export function Install() {
 
   const activeMethod = installMethods[activeTab]
 
-  // Canvas particle explosion effect
   const triggerParticleExplosion = () => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -56,11 +55,9 @@ export function Install() {
     const particles: Particle[] = []
     const colors = ["#10b981", "#06b6d4", "#8b5cf6", "#34d399"]
 
-    // Explode from the copy button center
     const originX = canvas.width / 2
     const originY = canvas.height / 2
 
-    // Create 35 particles
     for (let i = 0; i < 35; i++) {
       const angle = Math.random() * Math.PI * 2
       const speed = Math.random() * 4 + 2
@@ -69,7 +66,7 @@ export function Install() {
         x: originX,
         y: originY,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1.5, // slight upward bias
+        vy: Math.sin(angle) * speed - 1.5,
         size: Math.random() * 3 + 1.5,
         color: colors[Math.floor(Math.random() * colors.length)],
         alpha: 1,
@@ -85,16 +82,13 @@ export function Install() {
       particles.forEach((p) => {
         if (p.life > 0) {
           allDead = false
-          // Apply velocity & light gravity
           p.x += p.vx
           p.y += p.vy
-          p.vy += 0.08 // gravity
+          p.vy += 0.08
           p.life--
 
-          // Fade out based on life
           p.alpha = p.life / p.maxLife
 
-          // Draw glowing particle
           ctx.save()
           ctx.globalAlpha = p.alpha
           ctx.beginPath()
@@ -125,29 +119,29 @@ export function Install() {
   }
 
   return (
-    <section id="install" className="py-32 relative overflow-hidden border-t border-white/5">
+    <section id="install" className="py-32 relative overflow-hidden border-t border-white/5 flex justify-center w-full">
       {/* Background elements */}
       <div className="absolute inset-0 cyber-grid-dots opacity-20 pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[35rem] h-[35rem] rounded-full bg-brand-cyan/5 blur-[120px] pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto px-6 relative z-10">
+      <div className="w-full max-w-5xl px-6 relative z-10 flex flex-col items-center">
         
         {/* Title */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-16 flex flex-col items-center">
           <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
             {t.install.headline}
           </h2>
-          <div className="h-1 w-16 bg-gradient-to-r from-brand-violet to-brand-pink mt-4 rounded-full mx-auto" />
+          <div className="h-1 w-16 bg-gradient-to-r from-brand-violet to-brand-pink mt-5 rounded-full" />
         </div>
 
-        {/* Outer Command Center */}
-        <div className="relative rounded-2xl border border-white/5 bg-slate-950/80 shadow-2xl p-6 md:p-8">
+        {/* Outer Command Center (Perfect Centered max-w-3xl) */}
+        <div className="relative rounded-2xl border border-white/5 bg-slate-950/80 shadow-2xl p-6 md:p-8 w-full max-w-3xl">
           {/* Subtle Border beam effect */}
           <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-brand-cyan/20 to-brand-violet/20 opacity-40 blur-[1px] pointer-events-none" />
 
-          {/* Selector Tabs */}
-          <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-6">
-            <div className="flex items-center gap-1.5 mr-6 text-white/40">
+          {/* Selector Tabs (Centered) */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/5 pb-5 mb-6">
+            <div className="flex items-center gap-1.5 text-white/40">
               <Terminal size={18} />
               <span className="font-mono text-xs font-semibold uppercase tracking-wider">Install via</span>
             </div>
@@ -173,7 +167,7 @@ export function Install() {
           </div>
 
           {/* Installation Terminal Box */}
-          <div className="relative rounded-xl border border-white/5 bg-slate-900/60 p-5 font-mono text-sm leading-relaxed overflow-hidden">
+          <div className="relative rounded-xl border border-white/5 bg-slate-900/60 p-6 font-mono text-sm sm:text-base leading-relaxed overflow-hidden">
             {/* Background copy particle canvas */}
             <canvas
               ref={canvasRef}
@@ -183,7 +177,7 @@ export function Install() {
 
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-20">
               {/* Command text */}
-              <div className="flex items-start gap-3 flex-1 break-all select-all">
+              <div className="flex items-start gap-3 flex-1 break-all select-all text-left">
                 <span className="text-brand-cyan font-bold select-none">$</span>
                 <span className="text-white/90 font-medium tracking-tight">
                   {activeMethod.command}
@@ -194,7 +188,7 @@ export function Install() {
               <button
                 ref={buttonRef}
                 onClick={handleCopy}
-                className={`relative overflow-hidden group flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg border font-sans text-xs font-bold transition-all duration-300 shrink-0 ${
+                className={`relative overflow-hidden group flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg border font-sans text-xs font-bold transition-all duration-300 shrink-0 w-full md:w-auto ${
                   copied
                     ? "bg-terminal-green border-terminal-green/30 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                     : "bg-white/5 hover:bg-white/10 text-white/90 hover:text-white border-white/10 hover:border-white/20 active:scale-95"

@@ -84,8 +84,8 @@ export function Features() {
     const xc = rect.width / 2
     const yc = rect.height / 2
     
-    const rotateX = ((yc - y) / yc) * 10
-    const rotateY = ((x - xc) / xc) * 10
+    const rotateX = ((yc - y) / yc) * 8
+    const rotateY = ((x - xc) / xc) * 8
 
     card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`
   }
@@ -96,37 +96,37 @@ export function Features() {
   }
 
   return (
-    <section ref={sectionRef} className="py-32 relative overflow-hidden border-t border-white/5">
+    <section ref={sectionRef} className="py-32 relative overflow-hidden border-t border-white/5 flex justify-center w-full">
       {/* Background Decorative Lines */}
       <div className="absolute inset-0 cyber-grid opacity-10 pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto px-6 relative z-10">
+      <div className="w-full max-w-5xl px-6 relative z-10">
         
-        {/* Header */}
-        <div className="text-center lg:text-left mb-16">
+        {/* Header (Fully Centered) */}
+        <div className="text-center mb-20 flex flex-col items-center">
           <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
             {t.features.headline}
           </h2>
-          <div className="h-1 w-20 bg-gradient-to-r from-brand-cyan to-brand-violet mt-4 rounded-full mx-auto lg:mx-0" />
+          <div className="h-1 w-16 bg-gradient-to-r from-brand-cyan to-brand-violet mt-5 rounded-full" />
         </div>
 
         {/* Bento Grid */}
         <div
           ref={gridRef}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full"
         >
-          {/* Card 0: AI-Native Skill (col-span-2) */}
+          {/* Card 0: AI-Native Skill (col-span-2 on large screens, stacks vertically on smaller screens) */}
           <div
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            className="bento-card md:col-span-2 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-cyan/20 transition-all duration-300"
+            className="bento-card lg:col-span-2 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-cyan/20 transition-all duration-300"
             style={{ transition: "transform 0.1s ease-out, border-color 0.3s ease" }}
           >
-            {/* Hover Glow Edge */}
             <div className="absolute -inset-px bg-gradient-to-r from-brand-cyan/20 to-brand-violet/20 opacity-0 group-hover:opacity-100 rounded-2xl blur-[1px] transition-opacity duration-500 pointer-events-none" />
 
-            <div className="relative z-10 flex flex-col md:flex-row gap-8 justify-between h-full">
-              <div className="max-w-md flex flex-col justify-between">
+            <div className="relative z-10 flex flex-col lg:flex-row gap-8 justify-between h-full w-full">
+              {/* Left text description */}
+              <div className="flex flex-col justify-between w-full lg:max-w-[50%] shrink-0">
                 <div>
                   <div className="w-10 h-10 rounded-xl bg-brand-cyan/10 border border-brand-cyan/15 flex items-center justify-center text-brand-cyan mb-5 shadow-lg shadow-brand-cyan/5">
                     <Robot size={22} weight="duotone" />
@@ -138,28 +138,30 @@ export function Features() {
                     {t.features.items[0].description}
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-1.5 text-xs text-brand-cyan font-mono font-semibold">
+                <div className="inline-flex items-center gap-1.5 text-xs text-brand-cyan font-mono font-semibold mt-4 lg:mt-0">
                   <span>skills.sh protocol enabled</span>
                   <ArrowRight size={14} />
                 </div>
               </div>
 
-              {/* Chat Simulation Widget */}
-              <div className="flex-1 w-full max-w-sm rounded-xl border border-white/5 bg-slate-900/60 p-4 font-mono text-[11px] leading-relaxed shadow-inner">
-                <div className="flex items-center gap-1.5 mb-3 border-b border-white/5 pb-2 text-white/40">
-                  <span className="w-2 h-2 rounded-full bg-brand-cyan animate-pulse" />
-                  <span>Agent Chat Box</span>
-                </div>
-                <div className="space-y-4">
-                  <div className="text-white/80">
-                    <span className="text-brand-pink font-semibold">User: </span>
-                    <span>"Any news about Go this morning?"</span>
+              {/* Chat Simulation Widget (Guaranteed no compression!) */}
+              <div className="w-full lg:max-w-[45%] rounded-xl border border-white/5 bg-slate-900/60 p-4 font-mono text-[11px] leading-relaxed shadow-inner shrink-0 flex flex-col justify-between min-h-[160px]">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-3 border-b border-white/5 pb-2 text-white/40">
+                    <span className="w-2 h-2 rounded-full bg-brand-cyan animate-pulse" />
+                    <span>Agent Chat Box</span>
                   </div>
-                  <div className="text-terminal-dim p-2.5 rounded bg-black/30 border border-white/5 text-[10px]">
-                    <span className="text-brand-violet font-semibold">Agent: </span>
-                    <span className="text-brand-cyan">tide list --unread --category tech</span>
-                    <div className="mt-1.5 text-white/40 text-[9px] border-t border-white/5 pt-1.5">
-                      Calling Tide binary via skills.sh definition...
+                  <div className="space-y-4">
+                    <div className="text-white/80">
+                      <span className="text-brand-pink font-semibold">User: </span>
+                      <span>"Any news about Go this morning?"</span>
+                    </div>
+                    <div className="text-terminal-dim p-2.5 rounded bg-black/30 border border-white/5 text-[10px]">
+                      <span className="text-brand-violet font-semibold">Agent: </span>
+                      <span className="text-brand-cyan">tide list --unread --category tech</span>
+                      <div className="mt-1.5 text-white/40 text-[9px] border-t border-white/5 pt-1.5">
+                        Calling Tide binary via skills.sh definition...
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -171,7 +173,7 @@ export function Features() {
           <div
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            className="bento-card md:col-span-1 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-violet/20 transition-all duration-300"
+            className="bento-card lg:col-span-1 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-violet/20 transition-all duration-300"
             style={{ transition: "transform 0.1s ease-out, border-color 0.3s ease" }}
           >
             <div className="absolute -inset-px bg-gradient-to-r from-brand-violet/20 to-brand-pink/20 opacity-0 group-hover:opacity-100 rounded-2xl blur-[1px] transition-opacity duration-500 pointer-events-none" />
@@ -190,7 +192,7 @@ export function Features() {
               </div>
 
               {/* Interactive JSON Explorer Widget */}
-              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-3.5 font-mono text-[10px] select-none">
+              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-3.5 font-mono text-[10px] select-none mt-4 lg:mt-0">
                 <div className="flex items-center justify-between text-white/30 border-b border-white/5 pb-1.5 mb-2">
                   <span>output.json</span>
                   <span className="text-[9px] text-brand-violet">Click node</span>
@@ -244,7 +246,7 @@ export function Features() {
           <div
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            className="bento-card md:col-span-1 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-cyan/20 transition-all duration-300"
+            className="bento-card lg:col-span-1 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-cyan/20 transition-all duration-300"
             style={{ transition: "transform 0.1s ease-out, border-color 0.3s ease" }}
           >
             <div className="absolute -inset-px bg-gradient-to-r from-brand-cyan/20 to-brand-violet/20 opacity-0 group-hover:opacity-100 rounded-2xl blur-[1px] transition-opacity duration-500 pointer-events-none" />
@@ -265,7 +267,7 @@ export function Features() {
               {/* Progress Bar Widget */}
               <div
                 onClick={() => setFetchingActive(!fetchingActive)}
-                className="rounded-xl border border-white/5 bg-slate-900/60 p-4 font-mono text-[10px] space-y-3 cursor-pointer hover:bg-slate-900/80 transition-colors"
+                className="rounded-xl border border-white/5 bg-slate-900/60 p-4 font-mono text-[10px] space-y-3 cursor-pointer hover:bg-slate-900/80 transition-colors mt-4 lg:mt-0"
               >
                 <div className="flex justify-between items-center text-white/30 border-b border-white/5 pb-1">
                   <span>concurrency = 10</span>
@@ -295,7 +297,7 @@ export function Features() {
           <div
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            className="bento-card md:col-span-1 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-pink/20 transition-all duration-300"
+            className="bento-card lg:col-span-1 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-pink/20 transition-all duration-300"
             style={{ transition: "transform 0.1s ease-out, border-color 0.3s ease" }}
           >
             <div className="absolute -inset-px bg-gradient-to-r from-brand-pink/20 to-brand-violet/20 opacity-0 group-hover:opacity-100 rounded-2xl blur-[1px] transition-opacity duration-500 pointer-events-none" />
@@ -314,7 +316,7 @@ export function Features() {
               </div>
 
               {/* Zero Dependency Topology Graph */}
-              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-4 flex flex-col gap-2.5 font-mono text-[10px]">
+              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-4 flex flex-col gap-2.5 font-mono text-[10px] mt-4 lg:mt-0">
                 <div className="flex items-center gap-2 p-2.5 rounded border border-brand-pink/20 bg-brand-pink/5 text-white/95">
                   <Cpu size={14} className="text-brand-pink" />
                   <div>
@@ -342,7 +344,7 @@ export function Features() {
           <div
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            className="bento-card md:col-span-1 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-emerald/20 transition-all duration-300"
+            className="bento-card lg:col-span-1 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-emerald/20 transition-all duration-300"
             style={{ transition: "transform 0.1s ease-out, border-color 0.3s ease" }}
           >
             <div className="absolute -inset-px bg-gradient-to-r from-brand-emerald/20 to-brand-cyan/20 opacity-0 group-hover:opacity-100 rounded-2xl blur-[1px] transition-opacity duration-500 pointer-events-none" />
@@ -361,7 +363,7 @@ export function Features() {
               </div>
 
               {/* Data Savings Graph */}
-              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-4 font-mono text-[10px]">
+              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-4 font-mono text-[10px] mt-4 lg:mt-0">
                 <div className="flex justify-between items-center text-white/30 border-b border-white/5 pb-2 mb-3">
                   <span>conditional fetching</span>
                   <span className="text-[9px] text-brand-emerald">ETag / Mod</span>
@@ -391,13 +393,13 @@ export function Features() {
           <div
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            className="bento-card md:col-span-3 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-violet/20 transition-all duration-300"
+            className="bento-card lg:col-span-3 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-violet/20 transition-all duration-300"
             style={{ transition: "transform 0.1s ease-out, border-color 0.3s ease" }}
           >
             <div className="absolute -inset-px bg-gradient-to-r from-brand-violet/10 via-brand-pink/10 to-brand-cyan/10 opacity-0 group-hover:opacity-100 rounded-2xl blur-[1px] transition-opacity duration-500 pointer-events-none" />
 
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 h-full">
-              <div className="max-w-xl">
+            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8 h-full w-full">
+              <div className="max-w-xl text-left">
                 <div className="w-10 h-10 rounded-xl bg-brand-violet/10 border border-brand-violet/15 flex items-center justify-center text-brand-violet mb-5 shadow-lg shadow-brand-violet/5">
                   <Clock size={22} weight="duotone" />
                 </div>
@@ -410,7 +412,7 @@ export function Features() {
               </div>
 
               {/* Radar Sweeping Clock Daemon Widget */}
-              <div className="relative w-44 h-44 rounded-full border border-white/5 bg-slate-900/40 flex items-center justify-center shadow-lg shadow-black/40">
+              <div className="relative w-44 h-44 rounded-full border border-white/5 bg-slate-900/40 flex items-center justify-center shadow-lg shadow-black/40 shrink-0 mt-6 lg:mt-0">
                 {/* Radar Sweep Effect */}
                 <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-brand-violet/0 via-brand-violet/10 to-brand-violet/30 animate-spin-slow pointer-events-none" />
                 <div className="absolute w-[90%] h-[90%] rounded-full border border-dashed border-white/5 flex items-center justify-center">
