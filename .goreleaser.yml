@@ -42,3 +42,21 @@ release:
   github:
     owner: 0xfig521
     name: tide
+
+brews:
+  - name: tide
+    repository:
+      owner: 0xfig521
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: tide-bot
+      email: bot@0xfig521.dev
+    homepage: "https://github.com/0xfig521/tide"
+    description: "High-speed RSS reader for the terminal"
+    license: "MIT"
+    directory: Formula
+    install: |
+      bin.install "tide"
+    test: |
+      system "#{bin}/tide", "--help"
