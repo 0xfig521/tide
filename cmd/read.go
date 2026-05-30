@@ -2,19 +2,24 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+
+	"github.com/0xfig521/tide/internal/output"
 )
 
 var readCmd = &cobra.Command{
 	Use:   "read <id>",
 	Short: "Mark an entry as read",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		id := parseIDArg(args[0])
-		if err := entryRepo().MarkRead(id); err != nil {
-			printJSON(map[string]any{"ok": false, "error": err.Error()})
-			return
+	RunE: func(cmd *cobra.Command, args []string) error {
+		id, err := parseIDArg(args[0])
+		if err != nil {
+			return err
 		}
-		printJSON(map[string]any{"ok": true, "id": id, "read": true})
+		if err := entryRepo().MarkRead(id); err != nil {
+			return output.PrintError(output.CodeInternalError, err.Error())
+		}
+		output.PrintSuccess(map[string]any{"id": id, "read": true}, nil)
+		return nil
 	},
 }
 

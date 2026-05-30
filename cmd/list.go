@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -36,7 +35,7 @@ Examples:
   tide list --category tech --page 2 # Category filtered, page 2
   tide list --page-size 50           # 50 per page
   tide list --format table           # Terminal table view`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		q := repo.EntryQuery{
 			Keyword:      listKeyword,
 			CategoryName: listCategory,
@@ -50,14 +49,13 @@ Examples:
 
 		entries, err := entryRepo().ListEntries(q)
 		if err != nil {
-			fmt.Fprintln(cmd.ErrOrStderr(), output.ErrorMsg(fmt.Sprintf("List failed: %v", err)))
-			return
+			return output.PrintError(output.CodeInternalError, fmt.Sprintf("List failed: %v", err))
 		}
 
 		if listFormat == "table" {
 			if len(entries) == 0 {
-				fmt.Println(output.Warn("No articles found."))
-				return
+				output.PrintTable(output.Warn("No articles found."))
+				return nil
 			}
 			headers := []string{"ID", "Title", "Feed", "Date", "★"}
 			var rows [][]string
@@ -78,8 +76,8 @@ Examples:
 					star,
 				})
 			}
-			fmt.Println(output.EntryTable(headers, rows))
-			return
+			output.PrintTable(output.EntryTable(headers, rows))
+			return nil
 		}
 
 		total, _ := entryRepo().CountEntries(q)
@@ -87,12 +85,13 @@ Examples:
 		for _, e := range entries {
 			outputs = append(outputs, entryToOutput(e))
 		}
-		printJSON(map[string]any{
+		output.PrintSuccess(map[string]any{
 			"items":     outputs,
 			"total":     total,
 			"page":      q.Page,
 			"page_size": q.PageSize,
-		})
+		}, nil)
+		return nil
 	},
 }
 
@@ -141,13 +140,10 @@ func entryToOutput(e *models.Entry) models.EntryOutput {
 		ID: e.ID, Title: e.Title, URL: e.URL,
 		Author: e.AuthorName, PublishedAt: pubDate,
 		FeedTitle: e.FeedTitle, FeedID: e.FeedID,
+		Description: e.Description, Content: e.Content,
+		Categories: e.Categories, GUID: e.GUID,
 		IsRead: e.IsRead, IsStarred: e.IsStarred,
 	}
-}
-
-func printJSON(v any) {
-	b, _ := json.MarshalIndent(v, "", "  ")
-	fmt.Println(string(b))
 }
 
 func truncate(s string, n int) string {

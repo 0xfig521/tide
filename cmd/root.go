@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0xfig521/tide/internal/db"
+	"github.com/0xfig521/tide/internal/output"
 	"github.com/0xfig521/tide/internal/repo"
 )
 
@@ -25,7 +26,10 @@ var rootCmd = &cobra.Command{
 	Use:   "tide",
 	Short: "A high-concurrency RSS reader for the terminal",
 	Long: `tide is a fast, concurrent RSS reader CLI built in Go.
-It uses SQLite for storage and supports categories, search, and more.`,
+It uses SQLite for storage and supports categories, search, and more.
+
+All commands output JSON to stdout by default. Progress, logs, and diagnostics
+go to stderr. Use --format table on supported commands for human-readable output.`,
 	SilenceUsage: true,
 	Version:      version,
 }
@@ -61,16 +65,11 @@ func feedRepo() *repo.FeedRepo         { return repo.NewFeedRepo(dbConn) }
 func categoryRepo() *repo.CategoryRepo { return repo.NewCategoryRepo(dbConn) }
 func entryRepo() *repo.EntryRepo       { return repo.NewEntryRepo(dbConn) }
 
-func fatal(msg string) {
-	fmt.Fprintln(os.Stderr, msg)
-	os.Exit(1)
-}
-
-func parseIDArg(arg string) int64 {
+// parseIDArg parses a string ID argument; returns an error via RunE on failure.
+func parseIDArg(arg string) (int64, error) {
 	id, err := strconv.ParseInt(arg, 10, 64)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Invalid ID: %s\n", arg)
-		os.Exit(1)
+		return 0, output.PrintError(output.CodeInvalidArgs, fmt.Sprintf("invalid ID: %s", arg))
 	}
-	return id
+	return id, nil
 }

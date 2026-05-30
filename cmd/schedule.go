@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -38,7 +37,7 @@ The daemon will fetch RSS feeds at the specified interval.
 Examples:
   tide schedule start
   tide schedule start --interval 1h --concurrency 10`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		mgr := schedule.New(scheduleDataDir())
 
 		dbArg := ""
@@ -47,7 +46,6 @@ Examples:
 		} else {
 			dbArg = dbPath
 		}
-		// Use relative interval syntax that fetch --daemon understands
 		if schedInterval == "" {
 			schedInterval = "30m"
 		}
@@ -56,12 +54,11 @@ Examples:
 		}
 
 		if err := mgr.Start(dbArg, schedInterval, schedConcurrency); err != nil {
-			fmt.Fprintln(cmd.ErrOrStderr(), output.ErrorMsg(err.Error()))
-			return
+			return output.PrintError(output.CodeInternalError, err.Error())
 		}
 
-		fmt.Println(output.Success(fmt.Sprintf("Daemon started. Logs: %s", mgr.LogPath())))
-		fmt.Println(output.Warn("Use 'tide schedule status' to check, 'tide schedule stop' to terminate."))
+		output.PrintSuccess(map[string]any{"status": "started", "log_path": mgr.LogPath()}, nil)
+		return nil
 	},
 }
 
@@ -69,15 +66,15 @@ var scheduleStopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop the running fetch daemon",
 	Long:  "Gracefully stop the background daemon process.",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		mgr := schedule.New(scheduleDataDir())
 
 		if err := mgr.Stop(); err != nil {
-			fmt.Fprintln(cmd.ErrOrStderr(), output.ErrorMsg(err.Error()))
-			return
+			return output.PrintError(output.CodeInternalError, err.Error())
 		}
 
-		fmt.Println(output.Success("Daemon stopped."))
+		output.PrintSuccess(map[string]any{"status": "stopped"}, nil)
+		return nil
 	},
 }
 
@@ -85,20 +82,17 @@ var scheduleStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Check daemon status",
 	Long:  "Check whether the background daemon is running and show its uptime.",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		mgr := schedule.New(scheduleDataDir())
 
 		running, pid, uptime := mgr.Status()
 		if !running {
-			fmt.Println(output.Warn("Daemon is not running."))
-			return
+			output.PrintSuccess(map[string]any{"running": false}, nil)
+			return nil
 		}
 
-		status := fmt.Sprintf("Daemon is running (PID: %d)", pid)
-		if uptime != "" {
-			status += fmt.Sprintf(", uptime: %s", uptime)
-		}
-		fmt.Println(output.Success(status))
+		output.PrintSuccess(map[string]any{"running": true, "pid": pid, "uptime": uptime}, nil)
+		return nil
 	},
 }
 
@@ -111,32 +105,29 @@ Examples:
   tide schedule logs          # Show all logs
   tide schedule logs -n 20    # Show last 20 lines
   tide schedule logs --clear  # Clear log file`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		mgr := schedule.New(scheduleDataDir())
 
 		if clearLogs, _ := cmd.Flags().GetBool("clear"); clearLogs {
 			if err := mgr.ClearLogs(); err != nil {
-				fmt.Fprintln(cmd.ErrOrStderr(), output.ErrorMsg(fmt.Sprintf("clear logs: %v", err)))
-				return
+				return output.PrintError(output.CodeInternalError, err.Error())
 			}
-			fmt.Println(output.Success("Logs cleared."))
-			return
+			output.PrintSuccess(map[string]any{"status": "cleared"}, nil)
+			return nil
 		}
 
 		lines, err := mgr.Logs(schedLogLines)
 		if err != nil {
-			fmt.Fprintln(cmd.ErrOrStderr(), output.ErrorMsg(fmt.Sprintf("read logs: %v", err)))
-			return
+			return output.PrintError(output.CodeInternalError, err.Error())
 		}
 
 		if len(lines) == 0 {
-			fmt.Println(output.Warn("No log entries yet."))
-			return
+			output.PrintSuccess(map[string]any{"lines": []string{}}, nil)
+			return nil
 		}
 
-		for _, line := range lines {
-			fmt.Println(line)
-		}
+		output.PrintSuccess(map[string]any{"lines": lines}, nil)
+		return nil
 	},
 }
 

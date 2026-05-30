@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0xfig521/tide/internal/models"
+	"github.com/0xfig521/tide/internal/output"
 )
 
 var categoryDesc string
@@ -14,26 +15,26 @@ var categoryCreateCmd = &cobra.Command{
 	Use:   "create <name>",
 	Short: "Create a new category",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		cat, err := categoryRepo().Create(args[0], categoryDesc)
 		if err != nil {
-			printJSON(map[string]any{"ok": false, "error": err.Error()})
-			return
+			return output.PrintError(output.CodeAlreadyExists, err.Error())
 		}
-		printJSON(cat)
+		output.PrintSuccess(cat, nil)
+		return nil
 	},
 }
 
 var categoryListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all categories",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		cats, err := categoryRepo().List()
 		if err != nil {
-			printJSON(map[string]any{"ok": false, "error": err.Error()})
-			return
+			return output.PrintError(output.CodeInternalError, err.Error())
 		}
-		printJSON(cats)
+		output.PrintSuccess(cats, nil)
+		return nil
 	},
 }
 
@@ -41,24 +42,26 @@ var categoryAssignCmd = &cobra.Command{
 	Use:   "assign <feed-id> <category-name>",
 	Short: "Assign a feed to a category",
 	Args:  cobra.ExactArgs(2),
-	Run: func(cmd *cobra.Command, args []string) {
-		feedID := parseIDArg(args[0])
+	RunE: func(cmd *cobra.Command, args []string) error {
+		feedID, err := parseIDArg(args[0])
+		if err != nil {
+			return err
+		}
 		catName := args[1]
 
 		cat, err := categoryRepo().GetByName(catName)
 		if err != nil {
 			cat, err = categoryRepo().Create(catName, "")
 			if err != nil {
-				printJSON(map[string]any{"ok": false, "error": err.Error()})
-				return
+				return output.PrintError(output.CodeInternalError, err.Error())
 			}
 		}
 
 		if err := feedRepo().AssignCategory(feedID, cat.ID); err != nil {
-			printJSON(map[string]any{"ok": false, "error": err.Error()})
-			return
+			return output.PrintError(output.CodeInternalError, err.Error())
 		}
-		printJSON(map[string]any{"ok": true, "feed_id": feedID, "category": catName})
+		output.PrintSuccess(map[string]any{"feed_id": feedID, "category": catName}, nil)
+		return nil
 	},
 }
 
@@ -66,12 +69,12 @@ var categoryRemoveCmd = &cobra.Command{
 	Use:   "remove <name>",
 	Short: "Remove a category",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := categoryRepo().DeleteByName(args[0]); err != nil {
-			printJSON(map[string]any{"ok": false, "error": err.Error()})
-			return
+			return output.PrintError(output.CodeInternalError, err.Error())
 		}
-		printJSON(map[string]any{"ok": true, "name": args[0]})
+		output.PrintSuccess(map[string]any{"name": args[0]}, nil)
+		return nil
 	},
 }
 

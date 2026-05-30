@@ -14,22 +14,17 @@ var addCmd = &cobra.Command{
 	Use:   "add <url>",
 	Short: "Add an RSS feed URL",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		feedURL := args[0]
 
 		existing, _ := feedRepo().GetByURL(feedURL)
 		if existing != nil {
-			printJSON(map[string]any{
-				"ok": false, "error": "already exists",
-				"id": existing.ID, "title": existing.Title, "feed_url": existing.FeedURL,
-			})
-			return
+			return output.PrintError(output.CodeFeedAlreadyExists, "already exists")
 		}
 
 		f, err := feedRepo().Create(feedURL)
 		if err != nil {
-			printJSON(map[string]any{"ok": false, "error": err.Error()})
-			return
+			return output.PrintError(output.CodeInternalError, err.Error())
 		}
 
 		if addCategory != "" {
@@ -45,9 +40,10 @@ var addCmd = &cobra.Command{
 			}
 		}
 
-		printJSON(map[string]any{
-			"ok": true, "id": f.ID, "feed_url": f.FeedURL, "title": f.Title,
-		})
+		output.PrintSuccess(map[string]any{
+			"id": f.ID, "feed_url": f.FeedURL, "title": f.Title,
+		}, nil)
+		return nil
 	},
 }
 

@@ -24,6 +24,7 @@ var (
 	fetchForce       bool
 	fetchDaemon      bool
 	fetchInterval    time.Duration
+	fetchQuiet       bool
 )
 
 var fetchCmd = &cobra.Command{
@@ -34,31 +35,35 @@ var fetchCmd = &cobra.Command{
 When run without flags, fetches all due feeds (those with expired next_check_at).
 Use --feed to fetch a specific feed, --category for a group of feeds.
 Use --daemon to run as a background scheduler.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg := fetcher.DefaultConfig()
 		cfg.ForceRefresh = fetchForce
 		parser := cfg.NewParser()
 
 		if fetchDaemon {
 			runDaemon(cfg)
-			return
+			return nil
 		}
 
 		jobs := buildJobList()
 		if len(jobs) == 0 {
-			printJSON(map[string]any{"message": "no feeds to fetch"})
-			return
+			output.PrintSuccess(map[string]any{"message": "no feeds to fetch"}, nil)
+			return nil
 		}
 
-		bar := progressbar.NewOptions(len(jobs),
-			progressbar.OptionSetDescription("Fetching"),
-			progressbar.OptionSetWidth(30),
-			progressbar.OptionShowCount(),
-			progressbar.OptionShowIts(),
-			progressbar.OptionSetItsString("feeds"),
-			progressbar.OptionThrottle(100*time.Millisecond),
-			progressbar.OptionSetPredictTime(true),
-		)
+		var bar *progressbar.ProgressBar
+		if !fetchQuiet {
+			bar = progressbar.NewOptions(len(jobs),
+				progressbar.OptionSetDescription("Fetching"),
+				progressbar.OptionSetWidth(30),
+				progressbar.OptionShowCount(),
+				progressbar.OptionShowIts(),
+				progressbar.OptionSetItsString("feeds"),
+				progressbar.OptionThrottle(100*time.Millisecond),
+				progressbar.OptionSetPredictTime(true),
+				progressbar.OptionSetWriter(os.Stderr),
+			)
+		}
 
 		feedRepo := repo.NewFeedRepo(dbConn)
 		entryRepo := repo.NewEntryRepo(dbConn)
@@ -82,7 +87,9 @@ Use --daemon to run as a background scheduler.`,
 					if fetchErr != nil {
 						feedRepo.UpdateFetchError(job.FeedID, fetchErr.Error())
 						failedFeeds.Add(1)
-						bar.Add(1)
+						if bar != nil {
+							bar.Add(1)
+						}
 						continue
 					}
 
@@ -92,7 +99,9 @@ Use --daemon to run as a background scheduler.`,
 					if statusCode == 304 {
 						feedRepo.UpdateFetchResult(job.FeedID, etag, lastModified, statusCode, now, nextCheck)
 						unchanged.Add(1)
-						bar.Add(1)
+						if bar != nil {
+							bar.Add(1)
+						}
 						continue
 					}
 
@@ -108,19 +117,24 @@ Use --daemon to run as a background scheduler.`,
 							}
 						}
 					}
-					bar.Add(1)
+					if bar != nil {
+						bar.Add(1)
+					}
 				}
 			}()
 		}
 		wg.Wait()
-		bar.Finish()
+		if bar != nil {
+			bar.Finish()
+		}
 
-		printJSON(map[string]any{
+		output.PrintSuccess(map[string]any{
 			"feeds_fetched": len(jobs),
 			"new_entries":   newEntries.Load(),
 			"unchanged":     unchanged.Load(),
 			"failed":        failedFeeds.Load(),
-		})
+		}, nil)
+		return nil
 	},
 }
 
@@ -196,5 +210,6 @@ func init() {
 	fetchCmd.Flags().BoolVarP(&fetchForce, "force", "f", false, "Force refresh (ignore cache interval)")
 	fetchCmd.Flags().BoolVar(&fetchDaemon, "daemon", false, "Run as daemon (continuous scheduler)")
 	fetchCmd.Flags().DurationVar(&fetchInterval, "interval", 30*time.Minute, "Daemon fetch interval")
+	fetchCmd.Flags().BoolVar(&fetchQuiet, "quiet", false, "Suppress progress bar output")
 	rootCmd.AddCommand(fetchCmd)
 }

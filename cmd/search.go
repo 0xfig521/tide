@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0xfig521/tide/internal/models"
+	"github.com/0xfig521/tide/internal/output"
 	"github.com/0xfig521/tide/internal/repo"
 )
 
@@ -21,7 +22,7 @@ var searchCmd = &cobra.Command{
 	Use:   "search <keyword>",
 	Short: "Search articles (alias for list --search)",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		q := repo.EntryQuery{
 			Keyword:      args[0],
 			CategoryName: searchCategory,
@@ -34,8 +35,7 @@ var searchCmd = &cobra.Command{
 
 		entries, err := entryRepo().ListEntries(q)
 		if err != nil {
-			fatal(fmt.Sprintf("Search failed: %v", err))
-			return
+			return output.PrintError(output.CodeInternalError, fmt.Sprintf("Search failed: %v", err))
 		}
 
 		total, _ := entryRepo().CountEntries(q)
@@ -43,9 +43,10 @@ var searchCmd = &cobra.Command{
 		for _, e := range entries {
 			outputs = append(outputs, entryToOutput(e))
 		}
-		printJSON(map[string]any{
+		output.PrintSuccess(map[string]any{
 			"items": outputs, "total": total, "page": 1, "page_size": searchLimit,
-		})
+		}, nil)
+		return nil
 	},
 }
 

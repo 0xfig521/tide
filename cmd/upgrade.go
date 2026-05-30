@@ -38,15 +38,14 @@ Examples:
   tide upgrade              # Upgrade to latest
   tide upgrade --check      # Check if new version available
   tide upgrade --tag v0.2.0 # Install a specific version`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if upgradeCheck {
-			checkUpdate()
-			return
+			return checkUpdate()
 		}
 		if err := doUpgrade(upgradeTag); err != nil {
-			fmt.Fprintln(cmd.ErrOrStderr(), output.ErrorMsg(err.Error()))
-			return
+			return output.PrintError(output.CodeInternalError, err.Error())
 		}
+		return nil
 	},
 }
 
@@ -73,11 +72,9 @@ func doUpgrade(targetVersion string) error {
 	}
 
 	if !targetVersionSet() && release.TagName == version {
-		fmt.Println(output.Success(fmt.Sprintf("Already up to date (%s).", version)))
+		output.PrintSuccess(map[string]any{"current": version, "message": "already up to date"}, nil)
 		return nil
 	}
-
-	fmt.Println(output.Warn(fmt.Sprintf("Upgrading from %s to %s ...", version, release.TagName)))
 
 	assetName := fmt.Sprintf("tide-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 	assetURL := ""
@@ -143,23 +140,22 @@ func doUpgrade(targetVersion string) error {
 
 	os.Remove(backupPath)
 
-	fmt.Println(output.Success(fmt.Sprintf("Upgraded to %s", checkVer)))
+	output.PrintSuccess(map[string]any{"previous": version, "current": checkVer}, nil)
 	return nil
 }
 
-func checkUpdate() {
+func checkUpdate() error {
 	release, err := fetchRelease("")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, output.ErrorMsg(fmt.Sprintf("Check failed: %v", err)))
-		return
+		return output.PrintError(output.CodeInternalError, err.Error())
 	}
 
 	if release.TagName == version {
-		fmt.Println(output.Success(fmt.Sprintf("You are on the latest version (%s).", version)))
-	} else {
-		fmt.Println(output.Warn(fmt.Sprintf("New version available: %s (current: %s)", release.TagName, version)))
-		fmt.Println("Run 'tide upgrade' to install.")
+		output.PrintSuccess(map[string]any{"current": version, "latest": version, "update_available": false}, nil)
+		return nil
 	}
+	output.PrintSuccess(map[string]any{"current": version, "latest": release.TagName, "update_available": true}, nil)
+	return nil
 }
 
 func fetchRelease(targetVersion string) (*githubRelease, error) {

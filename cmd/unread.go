@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0xfig521/tide/internal/models"
+	"github.com/0xfig521/tide/internal/output"
 	"github.com/0xfig521/tide/internal/repo"
 )
 
@@ -17,7 +18,7 @@ var (
 var unreadCmd = &cobra.Command{
 	Use:   "unread",
 	Short: "List unread articles (alias for list --unread)",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		q := repo.EntryQuery{
 			CategoryName: unreadCategory,
 			UnreadOnly:   true,
@@ -27,8 +28,7 @@ var unreadCmd = &cobra.Command{
 
 		entries, err := entryRepo().ListEntries(q)
 		if err != nil {
-			fatal(fmt.Sprintf("Unread list failed: %v", err))
-			return
+			return output.PrintError(output.CodeInternalError, fmt.Sprintf("Unread list failed: %v", err))
 		}
 
 		total, _ := entryRepo().CountEntries(q)
@@ -36,9 +36,10 @@ var unreadCmd = &cobra.Command{
 		for _, e := range entries {
 			outputs = append(outputs, entryToOutput(e))
 		}
-		printJSON(map[string]any{
+		output.PrintSuccess(map[string]any{
 			"items": outputs, "total": total, "page": 1, "page_size": unreadLimit,
-		})
+		}, nil)
+		return nil
 	},
 }
 

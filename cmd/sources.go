@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/0xfig521/tide/internal/models"
@@ -16,16 +13,15 @@ var sourcesCmd = &cobra.Command{
 	Use:     "sources",
 	Short:   "List all RSS feed subscriptions",
 	Aliases: []string{"feeds"},
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		feeds, err := feedRepo().List(sourcesCategory)
 		if err != nil {
-			fmt.Fprintln(cmd.ErrOrStderr(), output.ErrorMsg(fmt.Sprintf("Failed to list sources: %v", err)))
-			return
+			return output.PrintError(output.CodeInternalError, err.Error())
 		}
 
 		if len(feeds) == 0 {
-			fmt.Println(`{"sources":[]}`)
-			return
+			output.PrintSuccess([]models.FeedOutput{}, nil)
+			return nil
 		}
 
 		outputs := make([]models.FeedOutput, 0, len(feeds))
@@ -44,8 +40,8 @@ var sourcesCmd = &cobra.Command{
 				LastFetched: lastFetched, IsActive: f.IsActive,
 			})
 		}
-		b, _ := json.MarshalIndent(outputs, "", "  ")
-		fmt.Println(string(b))
+		output.PrintSuccess(outputs, nil)
+		return nil
 	},
 }
 
