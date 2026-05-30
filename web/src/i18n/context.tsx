@@ -34,6 +34,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLocale() {
   const ctx = useContext(LocaleContext)
   if (!ctx) throw new Error("useLocale must be used within LocaleProvider")
