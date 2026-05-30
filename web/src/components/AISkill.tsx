@@ -25,7 +25,7 @@ export function AISkill() {
   useEffect(() => {
     const timer = setInterval(() => {
       setStage((prev) => (prev + 1) % 3)
-    }, 4500)
+    }, 8000)
     return () => clearInterval(timer)
   }, [])
 

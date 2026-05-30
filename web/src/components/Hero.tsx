@@ -86,8 +86,10 @@ export function Hero() {
         }, [], charIdx * 0.05)
       })
 
+      // Add a 1.2s pause after typing finishes before rendering JSON
+      typingTimeline.to({}, { duration: 1.2 })
+
       // 2. Output JSON after typing
-      typingTimeline.delay(1)
       typingTimeline.call(() => {
         if (!isMounted) return
         setShowJson(true)
@@ -99,15 +101,19 @@ export function Hero() {
         )
       })
 
+      // Add a 5.0s pause to allow the user to read the JSON output
+      typingTimeline.to({}, { duration: 5.0 })
+
       // 3. Trigger glow effect ("magic conversion")
-      typingTimeline.delay(1.8)
       typingTimeline.call(() => {
         if (!isMounted) return
         setGlowActive(true)
       })
 
+      // Add a 1.5s pause to showcase the glowing scanner line
+      typingTimeline.to({}, { duration: 1.5 })
+
       // 4. Collapse JSON & Fade In Cards
-      typingTimeline.delay(0.6)
       typingTimeline.call(() => {
         if (!isMounted) return
         setGlowActive(false)
@@ -143,8 +149,10 @@ export function Hero() {
         })
       })
 
+      // Add a 9.0s pause to allow the user to read the beautiful visual cards
+      typingTimeline.to({}, { duration: 9.0 })
+
       // 5. Rest & Loop
-      typingTimeline.delay(6)
       typingTimeline.call(() => {
         if (isMounted) {
           // Fade out cards to reset
