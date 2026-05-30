@@ -1,15 +1,21 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/tide-111?style=flat&logo=terminal&logoColor=white&labelColor=111">
-  <img alt="tide" src="https://img.shields.io/badge/tide-111?style=flat&logo=terminal&logoColor=white&labelColor=111">
-</picture>
+<pre align="center">
+  ████████╗██╗██████╗ ███████╗
+  ╚══██╔══╝██║██╔══██╗██╔════╝
+     ██║   ██║██║  ██║█████╗
+     ██║   ██║██║  ██║██╔══╝
+     ██║   ██║██████╔╝███████╗
+     ╚═╝   ╚═╝╚═════╝ ╚══════╝
+</pre>
 
-[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/0xfig521/tide?style=flat)](https://github.com/0xfig521/tide/releases)
+<p align="center"><em>一个高速并发的终端 RSS 阅读器。</em></p>
 
-[English](./README.md) | 中文
+<p align="center">
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go" alt="Go"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="https://github.com/0xfig521/tide/releases"><img src="https://img.shields.io/github/v/release/0xfig521/tide?style=flat" alt="Release"></a>
+</p>
 
----
+<p align="center"><a href="./README.md">English</a> | 中文</p>
 
 一个高速并发的终端 RSS 阅读器。`tide` 将订阅源存入 SQLite，并行抓取，所有输出为 JSON — 方便管道、脚本或直接浏览。
 

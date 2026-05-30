@@ -1,15 +1,21 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/tide-111?style=flat&logo=terminal&logoColor=white&labelColor=111">
-  <img alt="tide" src="https://img.shields.io/badge/tide-111?style=flat&logo=terminal&logoColor=white&labelColor=111">
-</picture>
+<pre align="center">
+  ████████╗██╗██████╗ ███████╗
+  ╚══██╔══╝██║██╔══██╗██╔════╝
+     ██║   ██║██║  ██║█████╗
+     ██║   ██║██║  ██║██╔══╝
+     ██║   ██║██████╔╝███████╗
+     ╚═╝   ╚═╝╚═════╝ ╚══════╝
+</pre>
 
-[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/0xfig521/tide?style=flat)](https://github.com/0xfig521/tide/releases)
+<p align="center"><em>A fast, concurrent RSS reader for the terminal.</em></p>
 
-English | [中文](./README.zh.md)
+<p align="center">
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go" alt="Go"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="https://github.com/0xfig521/tide/releases"><img src="https://img.shields.io/github/v/release/0xfig521/tide?style=flat" alt="Release"></a>
+</p>
 
----
+<p align="center">English | <a href="./README.zh.md">中文</a></p>
 
 A fast, concurrent RSS reader for the terminal. `tide` keeps your feeds in a SQLite database, fetches in parallel, and returns everything as JSON — easy to pipe, script, or browse.
 
