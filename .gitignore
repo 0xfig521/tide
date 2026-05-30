@@ -1,0 +1,26 @@
+# Binaries
+tide
+gorss
+*.exe
+*.test
+
+# Build output
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database files
+*.db
+*.db-wal
+*.db-shm
+
+# Project management
+.omo/
