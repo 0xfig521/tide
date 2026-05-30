@@ -28,7 +28,7 @@ A fast, concurrent RSS reader for the terminal. `tide` keeps your feeds in a SQL
 - **📡 Smart caching** — ETag / Last-Modified conditional requests, no wasted bandwidth
 - **⏱️ Time filters** — `--since 24h`, `--since 7d`
 - **📄 Pagination** — `--page`, `--page-size`
-- **🤖 Daemon mode** — `tide fetch --daemon` runs in the background on a schedule
+- **🤖 Daemon mode** — `tide schedule start` runs the fetcher in the background on a schedule
 
 ## Install
 
@@ -77,13 +77,48 @@ tide list --unread | jq '.items[] | {title, feed_title}'
 | `search <kw>` | Full-text search |
 | `unread` | Unread articles |
 | `fetch [--force]` | Pull latest from feeds |
-| `fetch --daemon` | Background scheduler |
+| `schedule` | Manage background daemon (start/stop/status/logs) |
 | `read <id>` | Mark as read |
 | `star <id>` | Bookmark / unbookmark |
 | `category` | Manage categories (create/list/assign/remove) |
 | `info <id>` | Feed details |
 
 All commands output JSON by default. Use `--format table` on `list` for a terminal view.
+
+## Scheduled Fetching
+
+Tide can run as a background daemon that automatically fetches feeds on a schedule.
+
+```bash
+# Start the daemon (default: every 30 minutes, 5 workers)
+tide schedule start
+
+# Custom interval and concurrency
+tide schedule start --interval 1h --concurrency 10
+
+# Check daemon status
+tide schedule status
+
+# View recent logs
+tide schedule logs -n 20
+
+# Stop the daemon
+tide schedule stop
+```
+
+The daemon persists across terminal sessions. It writes a PID file and logs to `~/.local/share/tide/logs/`.
+
+## AI Skill
+
+Tide ships with a [skill](https://skills.sh/) for AI coding agents (Claude Code, Codex, Cursor, etc.). Install it once and your agent can manage RSS feeds for you:
+
+```bash
+npx skills add 0xfig521/tide
+```
+
+The skill gives AI agents full knowledge of every tide command, flag, and workflow — so you can say "find me the top 5 unread articles about Rust this week" and it just works.
+
+See [`tide/SKILL.md`](./tide/SKILL.md) for the full skill definition.
 
 ## Powered by
 
