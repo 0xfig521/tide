@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0xfig521/tide/internal/fetcher"
+	"github.com/0xfig521/tide/internal/models"
 	"github.com/0xfig521/tide/internal/output"
 	"github.com/0xfig521/tide/internal/repo"
 )
@@ -25,6 +28,8 @@ var (
 	fetchDaemon      bool
 	fetchInterval    time.Duration
 	fetchQuiet       bool
+	fetchFailFast    bool
+	fetchApplyRules  bool
 )
 
 var fetchCmd = &cobra.Command{
@@ -68,57 +73,100 @@ Use --daemon to run as a background scheduler.`,
 		feedRepo := repo.NewFeedRepo(dbConn)
 		entryRepo := repo.NewEntryRepo(dbConn)
 
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
 		jobCh := make(chan fetcher.FetchJob, len(jobs))
 		for _, j := range jobs {
 			jobCh <- j
 		}
-		close(jobCh)
 
 		var wg sync.WaitGroup
 		var newEntries, failedFeeds, unchanged atomic.Int64
+
+		type fetchFailure struct {
+			FeedURL string `json:"feed_url"`
+			Error   string `json:"error"`
+		}
+		var failFastOnce sync.Once
+		var firstFailure *fetchFailure
 
 		for range fetchConcurrency {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				for job := range jobCh {
-					feed, etag, lastModified, statusCode, fetchErr := parser.Fetch(job.FeedURL, job.ETag, job.LastModified)
-
-					if fetchErr != nil {
-						feedRepo.UpdateFetchError(job.FeedID, fetchErr.Error())
-						failedFeeds.Add(1)
-						if bar != nil {
-							bar.Add(1)
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case job, ok := <-jobCh:
+						if !ok {
+							return
 						}
-						continue
-					}
+						feed, etag, lastModified, statusCode, fetchErr := parser.Fetch(job.FeedURL, job.ETag, job.LastModified)
 
-					now := time.Now()
-					nextCheck := now.Add(cfg.CheckInterval)
-
-					if statusCode == 304 {
-						feedRepo.UpdateFetchResult(job.FeedID, etag, lastModified, statusCode, now, nextCheck)
-						unchanged.Add(1)
-						if bar != nil {
-							bar.Add(1)
+						if fetchErr != nil {
+							if fetchFailFast {
+								failFastOnce.Do(func() {
+									firstFailure = &fetchFailure{FeedURL: job.FeedURL, Error: fetchErr.Error()}
+									cancel()
+								})
+							}
+							feedRepo.UpdateFetchError(job.FeedID, fetchErr.Error())
+							failedFeeds.Add(1)
+							if bar != nil {
+								bar.Add(1)
+							}
+							continue
 						}
-						continue
-					}
 
-					if feed != nil {
-						feedRepo.UpdateMeta(job.FeedID, feed.Title, feed.Description, feed.Link,
-							fetcher.ImageURL(feed), feed.Language, feed.FeedType)
-						feedRepo.UpdateFetchResult(job.FeedID, etag, lastModified, statusCode, now, nextCheck)
+						now := time.Now()
+						nextCheck := now.Add(cfg.CheckInterval)
 
-						for _, item := range feed.Items {
-							entry := fetcher.ConvertEntry(job.FeedID, item)
-							if err := entryRepo.InsertOrIgnore(entry); err == nil {
-								newEntries.Add(1)
+						if statusCode == 304 {
+							feedRepo.UpdateFetchResult(job.FeedID, etag, lastModified, statusCode, now, nextCheck)
+							unchanged.Add(1)
+							if bar != nil {
+								bar.Add(1)
+							}
+							continue
+						}
+
+						if feed != nil {
+							feedRepo.UpdateMeta(job.FeedID, feed.Title, feed.Description, feed.Link,
+								fetcher.ImageURL(feed), feed.Language, feed.FeedType)
+							feedRepo.UpdateFetchResult(job.FeedID, etag, lastModified, statusCode, now, nextCheck)
+
+							// Batch insert all entries in a single transaction for performance
+							batch := make([]*models.Entry, 0, len(feed.Items))
+							for _, item := range feed.Items {
+								batch = append(batch, fetcher.ConvertEntry(job.FeedID, item))
+							}
+							if n, err := entryRepo.BatchInsertEntries(batch); err == nil {
+								newEntries.Add(int64(n))
+							}
+
+							if fetchApplyRules {
+								for _, entry := range batch {
+									fullEntry, lookupErr := entryRepo.GetByHash(entry.Hash)
+									if lookupErr == nil {
+										rr := repo.NewRuleRepo(dbConn)
+										actions, _ := rr.Apply(fullEntry)
+										for act, val := range actions {
+											switch act {
+											case "state":
+												stateRepo().SetState(fullEntry.ID, val)
+											case "tag":
+												stateRepo().SetStateWithTags(fullEntry.ID, "processed", val)
+											}
+										}
+									}
+								}
 							}
 						}
-					}
-					if bar != nil {
-						bar.Add(1)
+						if bar != nil {
+							bar.Add(1)
+						}
 					}
 				}
 			}()
@@ -126,6 +174,23 @@ Use --daemon to run as a background scheduler.`,
 		wg.Wait()
 		if bar != nil {
 			bar.Finish()
+		}
+
+		if fetchFailFast && firstFailure != nil {
+			b, _ := json.Marshal(output.Response{
+				OK: false,
+				Data: map[string]any{
+					"errors": []map[string]string{
+						{"feed_url": firstFailure.FeedURL, "error": firstFailure.Error},
+					},
+				},
+				Error: &output.ErrorInfo{
+					Code:    output.CodeFetchFailed,
+					Message: fmt.Sprintf("fetch aborted: %s failed - %s", firstFailure.FeedURL, firstFailure.Error),
+				},
+			})
+			fmt.Println(string(b))
+			return output.NewCmdError(output.CodeFetchFailed, firstFailure.Error)
 		}
 
 		output.PrintSuccess(map[string]any{
@@ -211,5 +276,7 @@ func init() {
 	fetchCmd.Flags().BoolVar(&fetchDaemon, "daemon", false, "Run as daemon (continuous scheduler)")
 	fetchCmd.Flags().DurationVar(&fetchInterval, "interval", 30*time.Minute, "Daemon fetch interval")
 	fetchCmd.Flags().BoolVar(&fetchQuiet, "quiet", false, "Suppress progress bar output")
+	fetchCmd.Flags().BoolVar(&fetchFailFast, "fail-fast", false, "Stop immediately on first fetch error")
+	fetchCmd.Flags().BoolVar(&fetchApplyRules, "apply-rules", false, "Apply rules after fetching")
 	rootCmd.AddCommand(fetchCmd)
 }

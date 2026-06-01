@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"sync"
 	"time"
 
 	"github.com/0xfig521/tide/internal/db"
@@ -10,11 +11,63 @@ import (
 
 // FeedRepo handles feed data access.
 type FeedRepo struct {
-	db *db.DB
+	db               *db.DB
+	updateMetaOnce   sync.Once
+	updateResultOnce sync.Once
+	updateErrorOnce  sync.Once
+	updateMetaStmt   *sql.Stmt
+	updateResultStmt *sql.Stmt
+	updateErrorStmt  *sql.Stmt
 }
 
 func NewFeedRepo(db *db.DB) *FeedRepo {
 	return &FeedRepo{db: db}
+}
+
+func (r *FeedRepo) prepareUpdateMeta() error {
+	var err error
+	r.updateMetaOnce.Do(func() {
+		r.updateMetaStmt, err = r.db.Conn.Prepare(`
+			UPDATE feeds SET
+				title = ?, description = ?, site_url = ?, image_url = ?,
+				language = ?, feed_type = ?,
+				updated_at = datetime('now')
+			WHERE id = ?
+		`)
+	})
+	return err
+}
+
+func (r *FeedRepo) prepareUpdateResult() error {
+	var err error
+	r.updateResultOnce.Do(func() {
+		r.updateResultStmt, err = r.db.Conn.Prepare(`
+			UPDATE feeds SET
+				etag_header = ?, last_modified_header = ?,
+				http_status_code = ?, last_fetched_at = ?, next_check_at = ?,
+				checked_at = datetime('now'),
+				parsing_error_count = 0, parsing_error_msg = '',
+				updated_at = datetime('now')
+			WHERE id = ?
+		`)
+	})
+	return err
+}
+
+func (r *FeedRepo) prepareUpdateError() error {
+	var err error
+	r.updateErrorOnce.Do(func() {
+		r.updateErrorStmt, err = r.db.Conn.Prepare(`
+			UPDATE feeds SET
+				parsing_error_count = parsing_error_count + 1,
+				parsing_error_msg = ?,
+				checked_at = datetime('now'),
+				next_check_at = datetime('now', '+' || (1 << MIN(parsing_error_count, 6)) || ' hours'),
+				updated_at = datetime('now')
+			WHERE id = ?
+		`)
+	})
+	return err
 }
 
 // Create inserts a new feed subscription.
@@ -149,27 +202,19 @@ func (r *FeedRepo) List(categoryName string) ([]*models.Feed, error) {
 
 // UpdateMeta updates feed metadata after a successful fetch.
 func (r *FeedRepo) UpdateMeta(id int64, title, description, siteURL, imageURL, language, feedType string) error {
-	_, err := r.db.Conn.Exec(`
-		UPDATE feeds SET
-			title = ?, description = ?, site_url = ?, image_url = ?,
-			language = ?, feed_type = ?,
-			updated_at = datetime('now')
-		WHERE id = ?
-	`, title, description, siteURL, imageURL, language, feedType, id)
+	if err := r.prepareUpdateMeta(); err != nil {
+		return err
+	}
+	_, err := r.updateMetaStmt.Exec(title, description, siteURL, imageURL, language, feedType, id)
 	return err
 }
 
 // UpdateFetchResult updates fetch-related fields after a fetch attempt.
 func (r *FeedRepo) UpdateFetchResult(id int64, etag, lastModified string, statusCode int, fetchedAt time.Time, nextCheckAt time.Time) error {
-	_, err := r.db.Conn.Exec(`
-		UPDATE feeds SET
-			etag_header = ?, last_modified_header = ?,
-			http_status_code = ?, last_fetched_at = ?, next_check_at = ?,
-			checked_at = datetime('now'),
-			parsing_error_count = 0, parsing_error_msg = '',
-			updated_at = datetime('now')
-		WHERE id = ?
-	`, etag, lastModified, statusCode,
+	if err := r.prepareUpdateResult(); err != nil {
+		return err
+	}
+	_, err := r.updateResultStmt.Exec(etag, lastModified, statusCode,
 		fetchedAt.Format("2006-01-02 15:04:05"),
 		nextCheckAt.Format("2006-01-02 15:04:05"),
 		id)
@@ -178,15 +223,10 @@ func (r *FeedRepo) UpdateFetchResult(id int64, etag, lastModified string, status
 
 // UpdateFetchError records a fetch error and applies backoff.
 func (r *FeedRepo) UpdateFetchError(id int64, errMsg string) error {
-	_, err := r.db.Conn.Exec(`
-		UPDATE feeds SET
-			parsing_error_count = parsing_error_count + 1,
-			parsing_error_msg = ?,
-			checked_at = datetime('now'),
-			next_check_at = datetime('now', '+' || (1 << MIN(parsing_error_count, 6)) || ' hours'),
-			updated_at = datetime('now')
-		WHERE id = ?
-	`, errMsg, id)
+	if err := r.prepareUpdateError(); err != nil {
+		return err
+	}
+	_, err := r.updateErrorStmt.Exec(errMsg, id)
 	return err
 }
 
@@ -279,6 +319,117 @@ func (r *FeedRepo) GetEntryCount(feedID int64) (int, error) {
 		SELECT COUNT(*) FROM entries WHERE feed_id = ?
 	`, feedID).Scan(&total)
 	return total, err
+}
+
+// FeedHealth represents feed health statistics for machine-readable status output.
+type FeedHealth struct {
+	FeedID              int64   `json:"feed_id"`
+	Title               string  `json:"title"`
+	FeedURL             string  `json:"feed_url"`
+	Status              string  `json:"status"`
+	LastFetchedAt       string  `json:"last_fetched_at"`
+	LastSuccessAt       string  `json:"last_success_at"`
+	ConsecutiveFailures int     `json:"consecutive_failures"`
+	SuccessRate7d       float64 `json:"success_rate_7d"`
+	Entries7d           int     `json:"entries_7d"`
+	Entries30d          int     `json:"entries_30d"`
+	StaleDays           int     `json:"stale_days"`
+}
+
+// GetHealthStats returns health statistics for all feeds, or a single feed if feedID > 0.
+func (r *FeedRepo) GetHealthStats(feedID int64) ([]FeedHealth, error) {
+	query := `
+		SELECT
+			f.id,
+			COALESCE(f.title, ''),
+			f.feed_url,
+			COALESCE(f.last_fetched_at, ''),
+			f.parsing_error_count,
+			COALESCE(e.entries_7d, 0),
+			COALESCE(e.entries_30d, 0)
+		FROM feeds f
+		LEFT JOIN (
+			SELECT feed_id,
+				COUNT(CASE WHEN published_at >= datetime('now', '-7 days') THEN 1 END) AS entries_7d,
+				COUNT(CASE WHEN published_at >= datetime('now', '-30 days') THEN 1 END) AS entries_30d
+			FROM entries
+			GROUP BY feed_id
+		) e ON f.id = e.feed_id`
+
+	var rows *sql.Rows
+	var err error
+	if feedID > 0 {
+		query += " WHERE f.id = ?"
+		rows, err = r.db.Conn.Query(query, feedID)
+	} else {
+		query += " ORDER BY f.title"
+		rows, err = r.db.Conn.Query(query)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []FeedHealth
+	for rows.Next() {
+		var (
+			id                int64
+			title, feedURL    string
+			lastFetchedStr    string
+			parsingErrorCount int
+			entries7d         int
+			entries30d        int
+		)
+		if err := rows.Scan(&id, &title, &feedURL, &lastFetchedStr, &parsingErrorCount, &entries7d, &entries30d); err != nil {
+			return nil, err
+		}
+
+		var staleDays int
+		if lastFetchedStr != "" {
+			t := parseTime(lastFetchedStr)
+			if t != nil {
+				staleDays = int(time.Since(*t).Hours() / 24)
+			}
+		}
+
+		status := classifyHealth(staleDays, parsingErrorCount, lastFetchedStr)
+		successRate := 0.0
+		if lastFetchedStr != "" && parsingErrorCount == 0 {
+			successRate = 1.0
+		}
+
+		results = append(results, FeedHealth{
+			FeedID:              id,
+			Title:               title,
+			FeedURL:             feedURL,
+			Status:              status,
+			LastFetchedAt:       lastFetchedStr,
+			LastSuccessAt:       lastFetchedStr, // last_fetched_at is only set on success
+			ConsecutiveFailures: parsingErrorCount,
+			SuccessRate7d:       successRate,
+			Entries7d:           entries7d,
+			Entries30d:          entries30d,
+			StaleDays:           staleDays,
+		})
+	}
+	return results, rows.Err()
+}
+
+// classifyHealth returns the health status string based on metrics.
+func classifyHealth(staleDays, consecutiveFailures int, lastFetchedStr string) string {
+	if lastFetchedStr == "" {
+		return "unknown"
+	}
+	if consecutiveFailures >= 10 && staleDays > 30 {
+		return "dead"
+	}
+	if consecutiveFailures >= 3 {
+		return "failing"
+	}
+	if staleDays >= 7 {
+		return "stale"
+	}
+	return "healthy"
 }
 
 // parseTime parses a time string, returning nil on empty/error.

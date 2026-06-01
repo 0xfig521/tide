@@ -81,15 +81,14 @@ func (w *Worker) processJob(job FetchJob) error {
 		log.Printf("[worker] feed %d failed to update fetch result: %v", job.FeedID, err)
 	}
 
-	// Insert entries with dedup
-	newCount := 0
+	// Batch insert entries with dedup (single transaction for performance)
+	batch := make([]*models.Entry, 0, len(feed.Items))
 	for _, item := range feed.Items {
-		entry := convertEntry(job.FeedID, item)
-		if err := entryRepo.InsertOrIgnore(entry); err != nil {
-			log.Printf("[worker] feed %d failed to insert entry '%s': %v", job.FeedID, entry.Title, err)
-			continue
-		}
-		newCount++
+		batch = append(batch, convertEntry(job.FeedID, item))
+	}
+	newCount, err := entryRepo.BatchInsertEntries(batch)
+	if err != nil {
+		log.Printf("[worker] feed %d batch insert error: %v", job.FeedID, err)
 	}
 
 	if newCount > 0 {

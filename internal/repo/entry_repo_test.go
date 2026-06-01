@@ -184,3 +184,471 @@ func TestEntryRepo_ListEntries_Pagination(t *testing.T) {
 		}
 	}
 }
+
+// TestEntryRepo_ListEntries_SortByRelevance verifies that SortBy string values
+// are accepted and produce correct ordering. With no keyword, SortBy=relevance
+// falls back to published_at DESC like the default.
+func TestEntryRepo_ListEntries_SortByRelevance(t *testing.T) {
+	database := setupTestDB(t)
+	feed := createTestFeed(t, database, "https://example.com/relevance.xml")
+	repo := NewEntryRepo(database)
+
+	now := time.Now()
+
+	offsets := []int{3, 1, 2}
+	for i, off := range offsets {
+		pt := now.Add(-time.Duration(off) * time.Hour)
+		entry := &models.Entry{
+			FeedID:      feed.ID,
+			Title:       "Entry " + string(rune('A'+i)),
+			URL:         "https://example.com/sr/" + string(rune('0'+i)),
+			GUID:        "sort-rel-guid-" + string(rune('0'+i)),
+			PublishedAt: &pt,
+			Hash:        "sort-rel-hash-" + string(rune('0'+i)),
+		}
+		if err := repo.InsertOrIgnore(entry); err != nil {
+			t.Fatalf("InsertOrIgnore %d failed: %v", i, err)
+		}
+	}
+
+	// Default sort = published_at DESC.
+	def, err := repo.ListEntries(EntryQuery{PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEntries (default) failed: %v", err)
+	}
+	if len(def) != 3 {
+		t.Fatalf("default: expected 3, got %d", len(def))
+	}
+
+	// SortBy=published gives same order.
+	pub, err := repo.ListEntries(EntryQuery{SortBy: "published", PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEntries (published) failed: %v", err)
+	}
+	for i := range def {
+		if pub[i].ID != def[i].ID {
+			t.Errorf("published[%d]=%d != default[%d]=%d", i, pub[i].ID, i, def[i].ID)
+		}
+	}
+
+	// SortBy=relevance without keyword falls back to published_at DESC.
+	rel, err := repo.ListEntries(EntryQuery{SortBy: "relevance", PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEntries (relevance, no keyword) failed: %v", err)
+	}
+	if len(rel) != 3 {
+		t.Fatalf("relevance: expected 3, got %d", len(rel))
+	}
+	for i := range def {
+		if rel[i].ID != def[i].ID {
+			t.Errorf("relevance[%d]=%d != default[%d]=%d", i, rel[i].ID, i, def[i].ID)
+		}
+	}
+}
+
+// TestEntryRepo_ListEntries_SortByPublished verifies that SortBy=published
+// (or the default empty string) returns entries ordered by published_at DESC.
+func TestEntryRepo_ListEntries_SortByPublished(t *testing.T) {
+	database := setupTestDB(t)
+	feed := createTestFeed(t, database, "https://example.com/sort-published.xml")
+	repo := NewEntryRepo(database)
+
+	now := time.Now()
+
+	// Insert 3 entries in reverse chronological order: oldest → middle → newest.
+	for i, offset := range []int{3, 2, 1} {
+		pt := now.Add(-time.Duration(offset) * time.Hour)
+		entry := &models.Entry{
+			FeedID:      feed.ID,
+			Title:       "Entry " + string(rune('A'+i)),
+			URL:         "https://example.com/sp/" + string(rune('0'+i)),
+			GUID:        "sort-pub-guid-" + string(rune('0'+i)),
+			Content:     "sort by published test",
+			Description: "Sort by published test",
+			PublishedAt: &pt,
+			Hash:        "sort-pub-hash-" + string(rune('0'+i)),
+		}
+		if err := repo.InsertOrIgnore(entry); err != nil {
+			t.Fatalf("InsertOrIgnore %d failed: %v", i, err)
+		}
+	}
+
+	// Default sort (empty string) = published_at DESC.
+	results, err := repo.ListEntries(EntryQuery{PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEntries failed: %v", err)
+	}
+	if len(results) != 3 {
+		t.Fatalf("expected 3, got %d", len(results))
+	}
+	expectedGUIDs := []string{"sort-pub-guid-2", "sort-pub-guid-1", "sort-pub-guid-0"}
+	for i, exp := range expectedGUIDs {
+		if results[i].GUID != exp {
+			t.Errorf("published sort [%d]: got GUID %s, want %s", i, results[i].GUID, exp)
+		}
+	}
+
+	// Explicit SortBy=published should give the same order.
+	results2, err := repo.ListEntries(EntryQuery{SortBy: "published", PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEntries (explicit published) failed: %v", err)
+	}
+	for i := range expectedGUIDs {
+		if results2[i].GUID != results[i].GUID {
+			t.Errorf("explicit published sort [%d] differs from default: %s vs %s",
+				i, results2[i].GUID, results[i].GUID)
+		}
+	}
+}
+
+// TestEntryRepo_ListEntries_StateFilter verifies that ListEntries with a State
+// filter only returns entries whose state matches, via LEFT JOIN on entry_states.
+func TestEntryRepo_ListEntries_StateFilter(t *testing.T) {
+	database := setupTestDB(t)
+	feed := createTestFeed(t, database, "https://example.com/state-filter.xml")
+	repo := NewEntryRepo(database)
+	stateRepo := NewEntryStateRepo(database)
+
+	now := time.Now()
+
+	// Insert 3 entries.
+	for i := 0; i < 3; i++ {
+		pt := now.Add(-time.Duration(i) * time.Hour)
+		entry := &models.Entry{
+			FeedID:      feed.ID,
+			Title:       "State Entry " + string(rune('A'+i)),
+			URL:         "https://example.com/sf/" + string(rune('0'+i)),
+			GUID:        "state-filter-guid-" + string(rune('0'+i)),
+			Content:     "state filter test content",
+			Description: "State filter test",
+			PublishedAt: &pt,
+			Hash:        "state-filter-hash-" + string(rune('0'+i)),
+		}
+		if err := repo.InsertOrIgnore(entry); err != nil {
+			t.Fatalf("InsertOrIgnore %d failed: %v", i, err)
+		}
+	}
+
+	// List all entries to get their IDs.
+	allEntries, err := repo.ListEntries(EntryQuery{PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEntries failed: %v", err)
+	}
+	if len(allEntries) != 3 {
+		t.Fatalf("expected 3, got %d", len(allEntries))
+	}
+
+	// Set state "processed" on entries 0 and 2. Entry 1 stays without any state.
+	if err := stateRepo.SetState(allEntries[0].ID, "processed"); err != nil {
+		t.Fatalf("SetState on entry 0 failed: %v", err)
+	}
+	if err := stateRepo.SetState(allEntries[2].ID, "processed"); err != nil {
+		t.Fatalf("SetState on entry 2 failed: %v", err)
+	}
+
+	// Filter by state="processed": should return entries 0 and 2 only.
+	processed, err := repo.ListEntries(EntryQuery{State: "processed", PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEntries (state=processed) failed: %v", err)
+	}
+	if len(processed) != 2 {
+		t.Fatalf("expected 2 processed entries, got %d", len(processed))
+	}
+
+	// Verify correct entries returned.
+	seen := make(map[int64]bool)
+	for _, e := range processed {
+		seen[e.ID] = true
+	}
+	if !seen[allEntries[0].ID] {
+		t.Error("entry 0 (processed) not in state-filtered results")
+	}
+	if !seen[allEntries[2].ID] {
+		t.Error("entry 2 (processed) not in state-filtered results")
+	}
+	if seen[allEntries[1].ID] {
+		t.Error("entry 1 (no state) should not appear in state=processed results")
+	}
+}
+
+// TestEntryRepo_ListEntries_StateFilter_NoMatches verifies that a state filter
+// matching no entries returns an empty list (not an error).
+func TestEntryRepo_ListEntries_StateFilter_NoMatches(t *testing.T) {
+	database := setupTestDB(t)
+	feed := createTestFeed(t, database, "https://example.com/state-no-match.xml")
+	repo := NewEntryRepo(database)
+	stateRepo := NewEntryStateRepo(database)
+
+	now := time.Now()
+
+	// Insert 2 entries and set state "seen" on both.
+	for i := 0; i < 2; i++ {
+		pt := now.Add(-time.Duration(i) * time.Hour)
+		entry := &models.Entry{
+			FeedID:      feed.ID,
+			Title:       "NoMatch Entry " + string(rune('A'+i)),
+			URL:         "https://example.com/snm/" + string(rune('0'+i)),
+			GUID:        "state-nomatch-guid-" + string(rune('0'+i)),
+			Content:     "nomatch content",
+			Description: "No match test",
+			PublishedAt: &pt,
+			Hash:        "state-nomatch-hash-" + string(rune('0'+i)),
+		}
+		if err := repo.InsertOrIgnore(entry); err != nil {
+			t.Fatalf("InsertOrIgnore %d failed: %v", i, err)
+		}
+	}
+
+	allEntries, err := repo.ListEntries(EntryQuery{PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEntries failed: %v", err)
+	}
+	for _, e := range allEntries {
+		if err := stateRepo.SetState(e.ID, "seen"); err != nil {
+			t.Fatalf("SetState failed: %v", err)
+		}
+	}
+
+	// Query for state="processed" — none have this state.
+	results, err := repo.ListEntries(EntryQuery{State: "processed", PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEntries (state=processed, no matches) failed: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("expected 0 results, got %d", len(results))
+	}
+}
+
+// TestEntryRepo_CountEntries_StateFilter verifies that CountEntries respects
+// the State filter and returns the correct count.
+func TestEntryRepo_CountEntries_StateFilter(t *testing.T) {
+	database := setupTestDB(t)
+	feed := createTestFeed(t, database, "https://example.com/count-state.xml")
+	repo := NewEntryRepo(database)
+	stateRepo := NewEntryStateRepo(database)
+
+	now := time.Now()
+
+	// Insert 5 entries.
+	for i := 0; i < 5; i++ {
+		pt := now.Add(-time.Duration(i) * time.Hour)
+		entry := &models.Entry{
+			FeedID:      feed.ID,
+			Title:       "Count Entry " + string(rune('A'+i)),
+			URL:         "https://example.com/cs/" + string(rune('0'+i)),
+			GUID:        "count-state-guid-" + string(rune('0'+i)),
+			Content:     "count state test content",
+			Description: "Count state test",
+			PublishedAt: &pt,
+			Hash:        "count-state-hash-" + string(rune('0'+i)),
+		}
+		if err := repo.InsertOrIgnore(entry); err != nil {
+			t.Fatalf("InsertOrIgnore %d failed: %v", i, err)
+		}
+	}
+
+	allEntries, err := repo.ListEntries(EntryQuery{PageSize: 20})
+	if err != nil {
+		t.Fatalf("ListEntries failed: %v", err)
+	}
+
+	// Set "processed" on entries 0, 2, 4 (3 entries). Others get "seen".
+	for i, e := range allEntries {
+		if i%2 == 0 {
+			if err := stateRepo.SetState(e.ID, "processed"); err != nil {
+				t.Fatalf("SetState processed on %d failed: %v", i, err)
+			}
+		} else {
+			if err := stateRepo.SetState(e.ID, "seen"); err != nil {
+				t.Fatalf("SetState seen on %d failed: %v", i, err)
+			}
+		}
+	}
+
+	// Count without state filter: all 5.
+	total, err := repo.CountEntries(EntryQuery{})
+	if err != nil {
+		t.Fatalf("CountEntries (no filter) failed: %v", err)
+	}
+	if total != 5 {
+		t.Errorf("total count: expected 5, got %d", total)
+	}
+
+	// Count only processed: 3 (entries 0, 2, 4).
+	processedCount, err := repo.CountEntries(EntryQuery{State: "processed"})
+	if err != nil {
+		t.Fatalf("CountEntries (state=processed) failed: %v", err)
+	}
+	if processedCount != 3 {
+		t.Errorf("processed count: expected 3, got %d", processedCount)
+	}
+
+	// Count only seen: 2.
+	seenCount, err := repo.CountEntries(EntryQuery{State: "seen"})
+	if err != nil {
+		t.Fatalf("CountEntries (state=seen) failed: %v", err)
+	}
+	if seenCount != 2 {
+		t.Errorf("seen count: expected 2, got %d", seenCount)
+	}
+
+	// State filter for a state not used: 0.
+	zeroCount, err := repo.CountEntries(EntryQuery{State: "failed"})
+	if err != nil {
+		t.Fatalf("CountEntries (state=failed) failed: %v", err)
+	}
+	if zeroCount != 0 {
+		t.Errorf("failed count: expected 0, got %d", zeroCount)
+	}
+}
+
+func TestEntryRepo_BatchInsertEntries(t *testing.T) {
+	database := setupTestDB(t)
+	feed := createTestFeed(t, database, "https://example.com/batch.xml")
+	repo := NewEntryRepo(database)
+
+	now := time.Now()
+
+	// Create 5 entries
+	entries := make([]*models.Entry, 5)
+	for i := 0; i < 5; i++ {
+		pt := now.Add(-time.Duration(i) * time.Hour)
+		entries[i] = &models.Entry{
+			FeedID:      feed.ID,
+			Title:       "Batch Entry " + string(rune('A'+i)),
+			URL:         "https://example.com/b/" + string(rune('0'+i)),
+			GUID:        "batch-guid-" + string(rune('0'+i)),
+			Content:     "Batch content " + string(rune('0'+i)),
+			Description: "Batch description " + string(rune('0'+i)),
+			PublishedAt: &pt,
+			Hash:        "batch-hash-" + string(rune('0'+i)),
+		}
+	}
+
+	// Batch insert all 5
+	count, err := repo.BatchInsertEntries(entries)
+	if err != nil {
+		t.Fatalf("BatchInsertEntries failed: %v", err)
+	}
+	if count != 5 {
+		t.Errorf("expected 5 new entries, got %d", count)
+	}
+
+	// Verify all 5 persisted
+	results, err := repo.ListEntries(EntryQuery{PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListEntries failed: %v", err)
+	}
+	if len(results) != 5 {
+		t.Errorf("expected 5 entries in DB, got %d", len(results))
+	}
+
+	// Insert the same entries again — should insert 0 (all duplicates)
+	count, err = repo.BatchInsertEntries(entries)
+	if err != nil {
+		t.Fatalf("BatchInsertEntries (dup) failed: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expected 0 new entries for duplicates, got %d", count)
+	}
+
+	// Verify still only 5 entries
+	results, err = repo.ListEntries(EntryQuery{PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListEntries (after dup) failed: %v", err)
+	}
+	if len(results) != 5 {
+		t.Errorf("expected still 5 entries after dup, got %d", len(results))
+	}
+
+	// Verify GetByID returns full content
+	got, err := repo.GetByID(results[0].ID)
+	if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
+	}
+	if got.Content == "" {
+		t.Error("GetByID should return full content, but Content is empty")
+	}
+
+	// Verify ListEntries does NOT return content (light scan)
+	if results[0].Content != "" {
+		t.Error("ListEntries should NOT return content (light scan), but Content is non-empty")
+	}
+}
+
+func TestEntryRepo_ListEntries_ContentNotReturned(t *testing.T) {
+	database := setupTestDB(t)
+	feed := createTestFeed(t, database, "https://example.com/content-check.xml")
+	repo := NewEntryRepo(database)
+
+	now := time.Now()
+	entry := &models.Entry{
+		FeedID:      feed.ID,
+		Title:       "Content Check",
+		URL:         "https://example.com/content-check",
+		GUID:        "content-check-guid",
+		Content:     "This is the full article content that should NOT appear in list results",
+		Description: "Short description",
+		PublishedAt: &now,
+		Hash:        "content-check-hash",
+	}
+
+	if err := repo.InsertOrIgnore(entry); err != nil {
+		t.Fatalf("InsertOrIgnore failed: %v", err)
+	}
+
+	// ListEntries should not include content
+	results, err := repo.ListEntries(EntryQuery{PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListEntries failed: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatal("expected at least 1 entry")
+	}
+	if results[0].Content != "" {
+		t.Error("ListEntries should NOT return content field")
+	}
+
+	// GetByID should include full content
+	got, err := repo.GetByID(results[0].ID)
+	if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
+	}
+	if got.Content != "This is the full article content that should NOT appear in list results" {
+		t.Errorf("GetByID should return full content, got: %q", got.Content)
+	}
+}
+
+// TestEntryRepo_ListByFeed_ContentNotReturned verifies that ListByFeed
+// does not include the content field (uses entryListCols).
+func TestEntryRepo_ListByFeed_ContentNotReturned(t *testing.T) {
+	database := setupTestDB(t)
+	feed := createTestFeed(t, database, "https://example.com/lbf-content.xml")
+	repo := NewEntryRepo(database)
+
+	now := time.Now()
+	entry := &models.Entry{
+		FeedID:      feed.ID,
+		Title:       "LBF Content Check",
+		URL:         "https://example.com/lbf-content",
+		GUID:        "lbf-content-guid",
+		Content:     "ListByFeed should not return this content",
+		PublishedAt: &now,
+		Hash:        "lbf-content-hash",
+	}
+
+	if err := repo.InsertOrIgnore(entry); err != nil {
+		t.Fatalf("InsertOrIgnore failed: %v", err)
+	}
+
+	results, err := repo.ListByFeed(feed.ID, 10, 0)
+	if err != nil {
+		t.Fatalf("ListByFeed failed: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatal("expected at least 1 entry")
+	}
+	if results[0].Content != "" {
+		t.Error("ListByFeed should NOT return content field")
+	}
+}
