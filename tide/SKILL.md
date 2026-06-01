@@ -15,16 +15,24 @@ Tide is an RSS data adapter for AI agents and terminal users. It stores feeds in
 
 Use this skill when the user asks to:
 
-- **Get full entry details** — `tide get <id>` (includes description + content)
+- **Get full entry details** — `tide get <id>` (supports --text, --max-chars, --token-budget)
 - **Subscribe to RSS feeds** — `tide add <url>`
+- **Batch subscribe** — `tide batch-add [file]` (JSON array via file or stdin)
+- **Discover feeds from a website** — `tide discover <url>`
 - **Import/Export OPML** — `tide import <file>` / `tide export [--output <file>]`
-- **Fetch articles** — `tide fetch`
+- **Export entries** — `tide export entries` (JSONL or Markdown, with filters)
+- **Fetch articles** — `tide fetch` (supports --apply-rules for auto-classification)
 - **Browse or list articles** — `tide list` with filters
 - **Search feed content** — `tide search <keyword>`
+- **Get incremental changes** — `tide changes --after <cursor>`
+- **Mark entries as processed** — `tide mark <id> --state processed`
+- **Check feed health** — `tide health`
+- **Manage auto-routing rules** — `tide rule add|list|remove|apply`
 - **Manage categories** — `tide category`
 - **View subscriptions** — `tide sources`
 - **Manage the background daemon** — `tide schedule start|stop|status|logs`
 - **Self-update tide** — `tide upgrade` or `tide upgrade --check`
+- **Start MCP server** — `tide mcp` (for AI agent tool integration)
 - **Pipe RSS data to jq or other tools** — all output is JSON
 
 ## Installation
@@ -64,6 +72,68 @@ Subscribe to an RSS feed.
 
 ---
 
+### `tide batch-add [file]`
+
+Subscribe to multiple RSS feeds from a JSON array (file or stdin). Each element can be a plain URL string or an object with `"url"` and optional `"category"`. Categories auto-create if needed. Duplicates are skipped.
+
+**Examples:**
+```bash
+# From file
+tide batch-add feeds.json
+
+# From stdin (ideal for AI agents)
+echo '[{"url":"https://example.com/feed.xml","category":"tech"},{"url":"https://other.com/rss"}]' | tide batch-add
+
+# Plain URL strings also work
+echo '["https://blog.golang.org/feed.atom","https://hnrss.org/frontpage"]' | tide batch-add
+```
+
+**JSON input format:**
+```json
+[
+  "https://blog.golang.org/feed.atom",
+  {"url": "https://example.com/feed.xml", "category": "tech"},
+  {"url": "https://hnrss.org/frontpage", "category": "news"}
+]
+```
+
+**Output** returns a summary with per-feed results:
+```json
+{
+  "ok": true,
+  "data": {
+    "total": 3,
+    "imported": 2,
+    "skipped": 1,
+    "errored": 0,
+    "results": [
+      {"url": "...", "status": "imported", "id": 1, "title": "...", "category": "tech"},
+      {"url": "...", "status": "imported", "id": 2, "title": "...", "category": "news"},
+      {"url": "...", "status": "skipped", "reason": "already_exists", "id": 3}
+    ]
+  }
+}
+```
+
+---
+
+### `tide discover <url>`
+
+Discover RSS/Atom feeds from a website URL. Scans the page HTML and common feed paths.
+
+**Output** returns a list of discovered feeds with URL, type, and title:
+```json
+{"ok":true,"data":{"site_url":"...","feeds":[{"url":"...","type":"rss","title":"..."}]}}
+```
+
+**Examples:**
+```bash
+tide discover https://example.com
+tide discover https://blog.golang.org
+```
+
+---
+
 ### `tide fetch`
 
 Fetch articles from feeds with concurrent workers.
@@ -74,6 +144,52 @@ Fetch articles from feeds with concurrent workers.
 | `--category` | `-c` | | Fetch feeds in a category |
 | `--concurrency` | `-n` | `5` | Number of concurrent workers |
 | `--force` | `-f` | `false` | Force refresh (ignore cache interval) |
+| `--quiet` | | `false` | Suppress progress bar (pristine stdout) |
+| `--fail-fast` | | `false` | Stop immediately on first fetch error |
+| `--apply-rules` | | `false` | Apply routing rules to newly fetched entries |
+
+---
+
+### `tide changes`
+
+Get new/changed entries since the last call (incremental cursor mode). Ideal for agent workflows that need to track what's new.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--after` | `""` | Cursor to fetch changes after (default: auto-detect from history) |
+| `--limit` | `50` | Maximum entries to return |
+
+**Output** returns a new cursor for the next call:
+```json
+{"ok":true,"data":{"cursor":"2026-06-01 10:00:00:entry_42","items":[...],"count":5}}
+```
+
+Pass the `cursor` value from the response to `--after` on the next call to resume.
+
+**Examples:**
+```bash
+tide changes
+tide changes --after "2026-06-01 10:00:00:entry_42" --limit 20
+```
+
+---
+
+### `tide mark <entry-id>`
+
+Set processing state on an entry for agent workflow tracking. Valid states: `new`, `seen`, `processed`, `ignored`, `failed`.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--state` | (required) | Processing state: `new`, `seen`, `processed`, `ignored`, `failed` |
+| `--tag` | | Optional comma-separated tags (e.g., `summarized,rust`) |
+| `--note` | | Optional note string |
+
+**Examples:**
+```bash
+tide mark 42 --state processed
+tide mark 42 --state processed --tag summarized --note "Used in weekly digest"
+tide mark 42 --state ignored
+```
 
 ---
 
@@ -113,6 +229,53 @@ Full-text search (SQLite FTS5) across titles, descriptions, and content.
 
 Get full details of a single entry, including description and content.
 
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--full` | `false` | Include full content in output |
+| `--content-only` | `false` | Output only content-related fields (title, url, description, content, author) |
+| `--text` | `false` | Strip HTML tags from content before output |
+| `--max-chars` | `0` | Truncate content to N characters (0 = disabled) |
+| `--token-budget` | `0` | Truncate to fit ~N tokens (rough: N*4 chars; 0 = disabled) |
+
+When `--text` is active, HTML tags are stripped before output. When truncation flags are set (`--max-chars` or `--token-budget`), the response includes `truncated`, `char_count`, and `estimated_tokens` fields.
+
+**Examples:**
+```bash
+tide get 42
+tide get 42 --full
+tide get 42 --text --max-chars 4000
+tide get 42 --token-budget 2000
+```
+
+---
+
+### `tide health`
+
+Show feed health status including staleness, failure rate, and entry activity.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--format` | `jsonl` | Output format: `jsonl` (default) or `json` (envelope) |
+
+Default output is JSONL with one feed per line:
+```jsonl
+{"feed_id":1,"title":"Go Blog","status":"healthy","success_rate_7d":1.0,"entries_7d":3}
+{"feed_id":2,"title":"Old Feed","status":"stale","stale_days":120,"entries_7d":0}
+```
+
+**Status classification:**
+- `healthy` — recent success, low error rate
+- `stale` — no fetch in 7+ days
+- `failing` — 3+ consecutive failures
+- `dead` — 10+ consecutive failures, 30+ days stale
+- `unknown` — never fetched
+
+**Examples:**
+```bash
+tide health
+tide health --format json
+```
+
 ---
 
 ### `tide import <file>`
@@ -123,11 +286,35 @@ Import RSS feed subscriptions from an OPML 2.0 file. Supports nested category gr
 
 ### `tide export`
 
-Export all RSS subscriptions as an OPML 2.0 file.
+Export RSS data. Parent command with two modes:
+
+**`tide export`** — Export all subscriptions as OPML 2.0.
 
 | Flag | Short | Description |
 |------|-------|-------------|
 | `--output` | `-o` | Output file path (default: stdout) |
+
+**`tide export entries`** — Export entries in machine-readable format.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--format` | `jsonl` | Output format: `jsonl` (default) or `markdown` |
+| `--since` | | Time range: `1h`, `6h`, `12h`, `24h`, `3d`, `7d`, `14d`, `30d` |
+| `--state` | | Filter by processing state: `new`, `seen`, `processed`, `ignored`, `failed` |
+| `--category` | | Filter by category |
+| `--limit` | `100` | Maximum entries |
+| `--output` | | Output file path (default: stdout) |
+
+**JSONL output** includes full provenance (id, title, url, feed_id, feed_title, feed_url, published_at, hash, description, content).
+
+**Markdown output** uses YAML frontmatter, suitable for weekly digests or knowledge base ingestion.
+
+**Examples:**
+```bash
+tide export entries --since 7d --state unprocessed
+tide export entries --format markdown --output weekly-report.md --since 7d --category AI
+tide export entries --format jsonl --limit 200
+```
 
 ---
 
@@ -144,6 +331,44 @@ List all RSS feed subscriptions. Alias: `tide feeds`.
 ### `tide remove <id>`
 
 Unsubscribe from a feed by ID. This also removes all associated articles.
+
+---
+
+### `tide rule`
+
+Manage automatic routing rules for entry classification. Rules match entries by field content (title, description, content, author, category) and apply actions (tag, set state, ignore).
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `add --match <regex> [--field title] [--action tag] [--value <v>] [--priority 0]` | Create a new rule |
+| `list` | List all rules |
+| `remove <id>` | Delete a rule |
+| `apply <entry-id>` | Test rules against a specific entry |
+
+**Match fields:** `title` (default), `description`, `content`, `author`, `category`
+
+**Actions:** `tag` (default), `state`, `ignore`, `priority`, `category`
+
+**Examples:**
+```bash
+# Auto-tag AI/agent related entries
+tide rule add --match "AI|agent|MCP" --action tag --value ai
+
+# Auto-ignore sponsored content
+tide rule add --match "sponsored|advertisement" --action ignore
+
+# High-priority feed
+tide rule add --match ".*" --field title --action priority --value high --feed 12
+
+# List and apply
+tide rule list
+tide rule apply 42
+
+# Apply rules during fetch
+tide fetch --apply-rules
+```
 
 ---
 
@@ -173,6 +398,29 @@ Manage the background daemon lifecycle.
 
 ---
 
+### `tide mcp`
+
+Start an MCP (Model Context Protocol) server over stdio. Enables AI agents to call Tide tools directly without shell commands.
+
+**Registered MCP tools:**
+- `discover_feeds` — Discover RSS feeds from a URL
+- `add_feed` — Subscribe to a feed
+- `fetch_feeds` — Fetch articles from feeds
+- `search_entries` — Full-text search entries
+- `list_entries` — List entries with filters
+- `get_entry` — Get entry details
+- `mark_entry` — Set processing state
+- `get_feed_health` — Check feed health
+
+Use this to connect Tide with MCP-compatible AI clients (Claude, Codex, Cursor, etc.).
+
+**Examples:**
+```bash
+tide mcp
+```
+
+---
+
 ### `tide upgrade`
 
 Self-update tide to the latest version from GitHub Releases.
@@ -186,8 +434,16 @@ Self-update tide to the latest version from GitHub Releases.
 
 ### Quick Setup
 ```bash
+# Single feed
 tide add "https://blog.golang.org/feed.atom" -c "Tech"
-tide add "https://hnrss.org/frontpage" -c "News"
+
+# Batch subscribe (AI-friendly)
+echo '[
+  {"url":"https://blog.golang.org/feed.atom","category":"Tech"},
+  {"url":"https://hnrss.org/frontpage","category":"News"},
+  {"url":"https://lwn.net/headlines/rss","category":"Tech"}
+]' | tide batch-add
+
 tide fetch --concurrency 10
 tide list --since 24h
 ```
@@ -222,16 +478,54 @@ tide schedule logs -n 20
 1. **All output is JSON with a standard envelope**: `{"ok": true/false, "data": ..., "error": {...}, "meta": null}`. Parse `.ok` first.
 2. **Exit codes**: 0 = success, non-zero = failure.
 3. **Error codes** are stable strings: `feed_not_found`, `entry_not_found`, `feed_already_exists`, `invalid_args`, `internal_error`.
-4. **Get full content**: Use `tide get <id>` for description and content. Default list/search output is lightweight.
+4. **Get full content**: Use `tide get <id>`. For HTML-free output, add `--text`. For token budgets, add `--max-chars` or `--token-budget`.
 5. **OPML import/export**: Use `tide import <file>` to migrate and `tide export -o <file>` for backup.
-6. **Categories auto-create** when using `--category` with `tide add` or during OPML import.
-7. **Feed IDs** are integers — use `tide sources` to find them.
-8. **Schedule**: Use `tide schedule start` for automatic background fetching.
+6. **Batch subscribe**: Use `tide batch-add` with a JSON array (via file or pipe) to add multiple feeds at once.
+7. **Categories auto-create** when using `--category` with `tide add`, `tide batch-add`, or during OPML import.
+8. **Feed IDs** are integers — use `tide sources` to find them.
+9. **Schedule**: Use `tide schedule start` for automatic background fetching.
+10. **Incremental changes**: Use `tide changes` for delta tracking. Pass the returned cursor to `--after` on the next call.
+11. **Feed health**: Use `tide health` (JSONL default) to detect stale or failing feeds before processing.
+12. **Export entries**: Use `tide export entries --format jsonl` for RAG pipelines or `--format markdown` for weekly digests.
+13. **Auto-classify**: Use `tide rule add` to create routing rules, then `tide fetch --apply-rules` to apply them during fetch.
+14. **MCP integration**: Run `tide mcp` to expose Tide tools to MCP-compatible AI agents (Claude, Codex, Cursor).
+15. **Discover first**: Not sure about a feed URL? Try `tide discover <website-url>` to find feeds automatically.
 
-## Recommended AI Agent Workflow
+## Recommended AI Agent Workflows
 
+### Quick Research Session
 ```bash
 tide fetch --quiet
 tide search "rust async" --since 7d --limit 5
-tide get 42
+tide get 42 --text --max-chars 4000
+```
+
+### Incremental Monitoring
+```bash
+tide changes --limit 10
+tide get 1 --text --token-budget 2000
+tide search "AI agent" --since 24h
+tide mark 1 --state processed --tag summarized
+```
+
+### Feed Quality Check
+```bash
+tide health | grep -E "stale|failing|dead"
+tide sources --health
+tide remove 12  # remove dead feed
+```
+
+### Weekly Export to Knowledge Base
+```bash
+tide export entries --since 7d --state unprocessed --format jsonl
+tide mark 42 --state processed
+```
+
+### MCP Integration (for MCP-compatible agents)
+```bash
+# Run MCP server in background
+tide mcp
+# AI agent now has direct tool access to:
+# discover_feeds, add_feed, fetch_feeds, search_entries,
+# list_entries, get_entry, mark_entry, get_feed_health
 ```

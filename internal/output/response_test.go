@@ -1,9 +1,11 @@
 package output
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"io"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -208,4 +210,317 @@ func TestNewCmdError(t *testing.T) {
 	}
 	// Verify it satisfies the error interface.
 	var _ error = cmdErr
+}
+
+func TestPrintJSONL_Basic(t *testing.T) {
+	items := []any{
+		map[string]any{"id": 1, "title": "first"},
+		map[string]any{"id": 2, "title": "second"},
+	}
+
+	output := captureStdout(func() {
+		PrintJSONL(items)
+	})
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d\noutput: %s", len(lines), output)
+	}
+
+	for i, line := range lines {
+		if !json.Valid([]byte(line)) {
+			t.Errorf("line %d is not valid JSON: %s", i, line)
+			continue
+		}
+		var obj map[string]any
+		if err := json.Unmarshal([]byte(line), &obj); err != nil {
+			t.Errorf("line %d unmarshal failed: %v", i, err)
+		}
+	}
+
+	var obj1 map[string]any
+	json.Unmarshal([]byte(lines[0]), &obj1)
+	if obj1["id"] != float64(1) || obj1["title"] != "first" {
+		t.Errorf("line 0 content mismatch: %v", obj1)
+	}
+}
+
+func TestPrintJSONL_Empty(t *testing.T) {
+	output := captureStdout(func() {
+		PrintJSONL([]any{})
+	})
+	if output != "" {
+		t.Errorf("expected empty output for empty slice, got: %q", output)
+	}
+
+	output = captureStdout(func() {
+		PrintJSONL(nil)
+	})
+	if output != "" {
+		t.Errorf("expected empty output for nil slice, got: %q", output)
+	}
+}
+
+func TestPrintJSONL_MarshalError(t *testing.T) {
+	ch := make(chan int)
+	items := []any{
+		map[string]any{"id": 1, "name": "good"},
+		ch,
+		map[string]any{"id": 3, "name": "also good"},
+	}
+
+	output := captureStdout(func() {
+		PrintJSONL(items)
+	})
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 lines, got %d\noutput: %s", len(lines), output)
+	}
+
+	var obj1 map[string]any
+	if err := json.Unmarshal([]byte(lines[0]), &obj1); err != nil {
+		t.Errorf("line 0 is not valid JSON: %v", err)
+	}
+
+	var errObj map[string]string
+	if err := json.Unmarshal([]byte(lines[1]), &errObj); err != nil {
+		t.Errorf("line 1 is not valid JSON: %v", err)
+	}
+	if _, hasError := errObj["error"]; !hasError {
+		t.Errorf("line 1 should contain 'error' key, got: %v", errObj)
+	}
+
+	var obj3 map[string]any
+	if err := json.Unmarshal([]byte(lines[2]), &obj3); err != nil {
+		t.Errorf("line 2 is not valid JSON: %v", err)
+	}
+}
+
+type jsonlTestItem struct {
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+}
+
+func TestPrintJSONLItems_WithStruct(t *testing.T) {
+	items := []jsonlTestItem{
+		{ID: 1, Title: "alpha"},
+		{ID: 2, Title: "beta"},
+	}
+
+	output := captureStdout(func() {
+		PrintJSONLItems(items)
+	})
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d\noutput: %s", len(lines), output)
+	}
+
+	for i, line := range lines {
+		var item jsonlTestItem
+		if err := json.Unmarshal([]byte(line), &item); err != nil {
+			t.Errorf("line %d parse failed: %v", i, err)
+		}
+	}
+
+	var item1 jsonlTestItem
+	json.Unmarshal([]byte(lines[0]), &item1)
+	if item1.ID != 1 || item1.Title != "alpha" {
+		t.Errorf("line 0 content mismatch: %+v", item1)
+	}
+
+	output = captureStdout(func() {
+		PrintJSONLItems([]jsonlTestItem{})
+	})
+	if output != "" {
+		t.Errorf("expected empty output for empty slice, got: %q", output)
+	}
+}
+
+func TestPrintCSV_Basic(t *testing.T) {
+	output := captureStdout(func() {
+		PrintCSV([]string{"id", "name"}, [][]string{
+			{"1", "Alice"},
+			{"2", "Bob"},
+		})
+	})
+
+	r := csv.NewReader(strings.NewReader(output))
+	records, err := r.ReadAll()
+	if err != nil {
+		t.Fatalf("failed to read CSV: %v", err)
+	}
+
+	if len(records) != 3 {
+		t.Fatalf("expected 3 records (1 header + 2 rows), got %d", len(records))
+	}
+	if records[0][0] != "id" || records[0][1] != "name" {
+		t.Errorf("header mismatch: %v", records[0])
+	}
+	if records[1][0] != "1" || records[1][1] != "Alice" {
+		t.Errorf("row 1 mismatch: %v", records[1])
+	}
+	if records[2][0] != "2" || records[2][1] != "Bob" {
+		t.Errorf("row 2 mismatch: %v", records[2])
+	}
+}
+
+func TestPrintCSV_EmptyHeaders(t *testing.T) {
+	output := captureStdout(func() {
+		PrintCSV(nil, [][]string{{"1", "data"}})
+	})
+	if output != "" {
+		t.Errorf("expected no output for nil headers, got: %q", output)
+	}
+
+	output = captureStdout(func() {
+		PrintCSV([]string{}, [][]string{{"1", "data"}})
+	})
+	if output != "" {
+		t.Errorf("expected no output for empty headers, got: %q", output)
+	}
+}
+
+func TestPrintCSV_NoRows(t *testing.T) {
+	output := captureStdout(func() {
+		PrintCSV([]string{"id", "name"}, nil)
+	})
+
+	r := csv.NewReader(strings.NewReader(output))
+	records, err := r.ReadAll()
+	if err != nil {
+		t.Fatalf("failed to read CSV: %v", err)
+	}
+
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record (header only), got %d", len(records))
+	}
+	if records[0][0] != "id" || records[0][1] != "name" {
+		t.Errorf("header mismatch: %v", records[0])
+	}
+
+	output = captureStdout(func() {
+		PrintCSV([]string{"a", "b"}, [][]string{})
+	})
+	r = csv.NewReader(strings.NewReader(output))
+	records, err = r.ReadAll()
+	if err != nil {
+		t.Fatalf("failed to read CSV with empty rows: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record (header only), got %d", len(records))
+	}
+}
+
+func TestPrintError_NonZeroExitCodeHint(t *testing.T) {
+	tests := []struct {
+		code    ErrorCode
+		message string
+	}{
+		{CodeInvalidArgs, "short"},
+		{CodeInternalError, ""},
+		{CodeFetchFailed, "special chars: <>&\"'"},
+		{CodeDBOpenFailed, "multi\nline\nmessage"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.code), func(t *testing.T) {
+			_ = captureStdout(func() {
+				_ = PrintError(tt.code, tt.message)
+			})
+
+			cmdErr := PrintError(tt.code, tt.message)
+			if cmdErr == nil {
+				t.Fatal("PrintError should return a non-nil *CmdError for non-zero exit code semantics")
+			}
+			if cmdErr.Code != tt.code {
+				t.Errorf("CmdError.Code = %q, want %q", cmdErr.Code, tt.code)
+			}
+			errStr := cmdErr.Error()
+			if errStr == "" {
+				t.Error("Error() should not return an empty string")
+			}
+		})
+	}
+}
+
+func TestResponse_SchemaConsistency(t *testing.T) {
+	requiredFields := []string{"ok", "data", "error", "meta"}
+
+	t.Run("PrintSuccess envelope", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			data any
+			meta any
+		}{
+			{"string_data", "value", nil},
+			{"int_data", 42, map[string]int{"count": 1}},
+			{"nil_both", nil, nil},
+			{"struct_data", jsonlTestItem{ID: 1, Title: "test"}, nil},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				output := captureStdout(func() {
+					PrintSuccess(tc.data, tc.meta)
+				})
+
+				var resp Response
+				if err := json.Unmarshal([]byte(output), &resp); err != nil {
+					t.Fatalf("not valid JSON: %v", err)
+				}
+				if !resp.OK {
+					t.Error("ok should be true")
+				}
+
+				raw := make(map[string]any)
+				json.Unmarshal([]byte(output), &raw)
+				for _, f := range requiredFields {
+					if _, exists := raw[f]; !exists {
+						t.Errorf("missing field %q", f)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("PrintError envelope", func(t *testing.T) {
+		testCases := []struct {
+			name    string
+			code    ErrorCode
+			message string
+		}{
+			{"normal", CodeInvalidArgs, "bad input"},
+			{"empty_message", CodeInternalError, ""},
+			{"special_chars", CodeFeedNotFound, "feed \"42\" not <found>"},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				output := captureStdout(func() {
+					PrintError(tc.code, tc.message)
+				})
+
+				var resp Response
+				if err := json.Unmarshal([]byte(output), &resp); err != nil {
+					t.Fatalf("not valid JSON: %v", err)
+				}
+				if resp.OK {
+					t.Error("ok should be false")
+				}
+				if resp.Error == nil {
+					t.Fatal("error should be non-nil")
+				}
+
+				raw := make(map[string]any)
+				json.Unmarshal([]byte(output), &raw)
+				for _, f := range requiredFields {
+					if _, exists := raw[f]; !exists {
+						t.Errorf("missing field %q", f)
+					}
+				}
+			})
+		}
+	})
 }

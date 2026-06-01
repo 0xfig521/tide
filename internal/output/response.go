@@ -1,6 +1,7 @@
 package output
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -99,4 +100,49 @@ func writeJSON(v any) {
 		return
 	}
 	fmt.Println(string(b))
+}
+
+// PrintJSONL writes each item as a separate JSON line to stdout.
+// Empty or nil slices produce no output.
+// If an item fails to marshal, a minimal error line is written and processing continues.
+func PrintJSONL(items []any) {
+	for _, item := range items {
+		b, err := json.Marshal(item)
+		if err != nil {
+			fmt.Fprintf(os.Stdout, `{"error":"json marshal failed: %s"}`+"\n", err.Error())
+			continue
+		}
+		fmt.Fprintln(os.Stdout, string(b))
+	}
+}
+
+// PrintJSONLItems is a generic version of PrintJSONL that accepts any slice type.
+// Empty or nil slices produce no output.
+func PrintJSONLItems[T any](items []T) {
+	for _, item := range items {
+		b, err := json.Marshal(item)
+		if err != nil {
+			fmt.Fprintf(os.Stdout, `{"error":"json marshal failed: %s"}`+"\n", err.Error())
+			continue
+		}
+		fmt.Fprintln(os.Stdout, string(b))
+	}
+}
+
+// PrintCSV writes CSV to stdout using encoding/csv.
+// Writes headers first, then rows. Flushes and checks for errors.
+// Empty headers with nil/empty rows produce no output.
+func PrintCSV(headers []string, rows [][]string) {
+	if len(headers) == 0 {
+		return
+	}
+	w := csv.NewWriter(os.Stdout)
+	_ = w.Write(headers)
+	for _, row := range rows {
+		_ = w.Write(row)
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		fmt.Fprintf(os.Stderr, "csv write error: %v\n", err)
+	}
 }

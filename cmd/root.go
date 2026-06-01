@@ -30,8 +30,9 @@ It uses SQLite for storage and supports categories, search, and more.
 
 All commands output JSON to stdout by default. Progress, logs, and diagnostics
 go to stderr.`,
-	SilenceUsage: true,
-	Version:      version,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	Version:       version,
 }
 
 func Execute() {
@@ -64,6 +65,8 @@ func initDB() {
 func feedRepo() *repo.FeedRepo         { return repo.NewFeedRepo(dbConn) }
 func categoryRepo() *repo.CategoryRepo { return repo.NewCategoryRepo(dbConn) }
 func entryRepo() *repo.EntryRepo       { return repo.NewEntryRepo(dbConn) }
+func stateRepo() *repo.EntryStateRepo  { return repo.NewEntryStateRepo(dbConn) }
+func ruleRepo() *repo.RuleRepo         { return repo.NewRuleRepo(dbConn) }
 
 // parseIDArg parses a string ID argument; returns an error via RunE on failure.
 func parseIDArg(arg string) (int64, error) {

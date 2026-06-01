@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"encoding/csv"
 	"fmt"
-	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -18,6 +16,8 @@ var (
 	listCategory string
 	listFeedID   int64
 	listSince    string
+	listState    string
+	listFormat   string
 	listPage     int
 	listPageSize int
 	listJSON     bool
@@ -28,15 +28,21 @@ var csvHeaders = []string{"id", "title", "url", "author", "published_at", "feed_
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List articles with filtering and pagination",
-	Long: `List articles. Default output is CSV for compact AI context.
+	Long: `List articles. Default output is JSONL for AI agent consumption.
 
-Use --json for full JSON envelope output.`,
+Use --format json for full JSON envelope or --format csv for CSV output.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if listFormat != "jsonl" && listFormat != "json" && listFormat != "csv" {
+			return output.PrintError(output.CodeInvalidArgs,
+				fmt.Sprintf("invalid format: %q (must be jsonl, json, or csv)", listFormat))
+		}
+
 		q := repo.EntryQuery{
 			Keyword:      listKeyword,
 			CategoryName: listCategory,
 			FeedID:       listFeedID,
 			Since:        sinceExpr(listSince),
+			State:        listState,
 			Page:         listPage,
 			PageSize:     listPageSize,
 		}
@@ -46,7 +52,16 @@ Use --json for full JSON envelope output.`,
 			return output.PrintError(output.CodeInternalError, fmt.Sprintf("List failed: %v", err))
 		}
 
-		if listJSON {
+		switch listFormat {
+		case "jsonl":
+			outputs := make([]models.EntryOutput, 0, len(entries))
+			for _, e := range entries {
+				outputs = append(outputs, entryToFullOutput(e))
+			}
+			output.PrintJSONLItems(outputs)
+			return nil
+
+		case "json":
 			total, _ := entryRepo().CountEntries(q)
 			outputs := make([]models.EntryOutput, 0, len(entries))
 			for _, e := range entries {
@@ -59,16 +74,17 @@ Use --json for full JSON envelope output.`,
 				"page_size": q.PageSize,
 			}, nil)
 			return nil
+
+		case "csv":
+			rows := make([][]string, 0, len(entries))
+			for _, e := range entries {
+				rows = append(rows, entryToCSV(e))
+			}
+			output.PrintCSV(csvHeaders, rows)
+			return nil
 		}
 
-		// Default: CSV output
-		w := csv.NewWriter(os.Stdout)
-		w.Write(csvHeaders)
-		for _, e := range entries {
-			w.Write(entryToCSV(e))
-		}
-		w.Flush()
-		return w.Error()
+		return nil
 	},
 }
 
@@ -77,9 +93,10 @@ func init() {
 	listCmd.Flags().StringVarP(&listCategory, "category", "c", "", "Filter by category")
 	listCmd.Flags().Int64Var(&listFeedID, "feed", 0, "Filter by feed ID")
 	listCmd.Flags().StringVar(&listSince, "since", "", "Time range (1h, 6h, 12h, 24h, 3d, 7d, 14d, 30d)")
+	listCmd.Flags().StringVar(&listState, "state", "", "Filter by processing state (new, seen, processed, ignored, failed)")
 	listCmd.Flags().IntVarP(&listPage, "page", "p", 1, "Page number")
 	listCmd.Flags().IntVar(&listPageSize, "page-size", 20, "Articles per page")
-	listCmd.Flags().BoolVar(&listJSON, "json", false, "Output as JSON instead of CSV")
+	listCmd.Flags().StringVar(&listFormat, "format", "jsonl", "Output format: jsonl (default), json, csv")
 	rootCmd.AddCommand(listCmd)
 }
 

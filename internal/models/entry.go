@@ -22,6 +22,19 @@ type Entry struct {
 	FeedTitle string `json:"feed_title,omitempty"`
 }
 
+// EntryState tracks an agent's processing state for a single entry.
+// This replaces the read/star model with a more flexible state machine
+// designed for agent workflows: new → seen → processed / ignored / failed.
+type EntryState struct {
+	EntryID     int64      `json:"entry_id"`
+	State       string     `json:"state"`
+	Tags        string     `json:"tags,omitempty"`
+	Note        string     `json:"note,omitempty"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
 // EntryOutput is the JSON-serializable view of an entry for CLI output.
 type EntryOutput struct {
 	ID          int64  `json:"id"`
