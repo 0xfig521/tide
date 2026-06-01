@@ -1,3 +1,35 @@
+## 0.6.0 - 2026-06-01
+
+### Features
+- Add `tide batch-add` for bulk feed subscription from JSON files
+- Add `tide changes` for delta/cursor-based incremental entry tracking
+- Add `tide discover <url>` to auto-discover RSS/Atom feeds from a website
+- Add `tide health` for feed health status (healthy/stale/failing/dead)
+- Add `tide mark <id> --state <state>` for agent processing state tracking
+- Add `tide mcp` to expose Tide as MCP tools for AI agent integration
+- Add `tide rule add/list/remove` for auto-routing rules
+- Add `EntryStateRepo` with SetState, SetStateWithTags, SetStateFull, ListByState
+- Add `RuleRepo` with Apply method for regex-based entry routing
+- Add schema versions v4 (entry_states), v5 (change_log), v6 (rules)
+- Add `tide export entries` for JSONL/Markdown RAG export
+- Add `tide get --content-only`, `--max-chars`, `--token-budget`, `--text` for LLM context control
+- Structured error codes in output envelope for all commands
+
+### Performance
+- `list`/`search` no longer reads the `content` column — 13-field light scan reduces I/O and token cost
+- `BatchInsertEntries` uses single transaction + prepared statement for bulk entry insertion
+- Prepared statement reuse for `InsertOrIgnore`, `UpdateMeta`, `UpdateFetchResult`, `UpdateFetchError` (lazy-init via `sync.Once`)
+- All fetch paths (cmd/fetch and worker) use batch inserts instead of per-row `InsertOrIgnore`
+- Output response helpers with JSONL streaming / CSV support
+
+### Documentation
+- Add `docs/performance-optimization.md` — performance optimization roadmap with Phase 1 completed
+- Add `docs/agent-native-rss-tool-design.md` — Agent-native RSS design specification
+- Add `docs/agent-rss-tool-advanced-roadmap.md` — Advanced feature roadmap (MCP, delta, token budgets)
+- Add `tide/SKILL.md` — full AI agent skill definition for Claude Code/Codex/Cursor
+- Web landing page: add Performance Optimized bento card with throughput and token cost widgets
+- README/README.zh: add performance optimization feature bullet
+
 ## 0.5.1 - 2026-05-31
 
 ### Breaking Changes
