@@ -31,6 +31,13 @@
 - **📄 分页** — `--page`、`--page-size`
 - **🤖 守护模式** — `tide schedule start` 后台定时自动抓取
 - **↔️ OPML** — `tide import` / `tide export` 在不同 RSS 阅读器间迁移订阅
+- **🔄 增量追踪** — `tide changes` 游标模式，避免重复处理
+- **📏 Token 预算** — `tide get --max-chars` / `--token-budget`，控制 LLM 上下文成本
+- **🔗 MCP 集成** — `tide mcp` 将 Tide 暴露出 MCP 工具供 AI agent 直接调用
+- **🏥 源健康度** — `tide health` 自动检测失效/老化订阅源
+- **📤 RAG 导出** — `tide export entries` 以 JSONL/Markdown 格式导出到知识库
+- **📐 自动分发** — `tide rule add` + `tide fetch --apply-rules` 自动分类和过滤
+- **⚡ 性能优化** — 批量事务写入、预编译语句复用、list/search 避免加载大字段 content
 
 ## 安装
 
@@ -70,18 +77,66 @@ tide list --json | jq '.data.items[] | {title, feed_title}'
 |---|---|
 | `add <url> [-c <cat>]` | 添加订阅 |
 | `remove <id>` | 取消订阅 |
+| `discover <url>` | 从网站发现 RSS 订阅源 |
+| `mark <id> --state <s>` | 设置处理状态（new/seen/processed/ignored/failed）|
 | `sources` | 查看所有源 |
 | `import <file>` | 从 OPML 文件导入订阅 |
-| `export [--output <f>]` | 导出订阅为 OPML（stdout 或文件）|
-| `list` | 浏览文章（CSV 默认，`--json` 切换 JSON）|
+| `export [--output <f>]` | 导出订阅为 OPML |
+| `export entries` | 导出条目（JSONL 或 Markdown）|
+| `list` | 浏览文章（JSONL 默认）|
 | `search <kw>` | 全文搜索（FTS5）|
-| `get <id>` | 获取文章完整详情（描述、正文）|
-| `fetch [--force]` | 拉取最新 |
+| `get <id>` | 获取条目详情（支持 --text、--max-chars、--token-budget）|
+| `fetch [--force]` | 拉取最新（支持 --apply-rules）|
+| `changes` | 增量获取新增/变更条目 |
+| `health` | 查看订阅源健康状态 |
+| `rule` | 管理自动分发规则 |
 | `schedule` | 管理后台守护进程（start/stop/status/logs）|
 | `category` | 分类管理（create/list/assign/remove）|
+| `mcp` | 启动 MCP 服务器（AI agent 工具集成）|
 | `upgrade` | 自更新到最新版本 |
 
 所有命令默认输出 JSON（稳定 `{ok, data, error, meta}` 信封）。错误返回非零退出码和结构化错误码。
+
+## AI 助手自助安装指引
+
+将以下提示粘贴给你的 AI 助手（Claude、Codex、Cursor 等），让它自动安装并配置 Tide：
+
+> 你有 Shell 工具权限。请按以下步骤在这台机器上安装 Tide：
+>
+> **第 1 步 — 安装 Tide**
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
+> ```
+> 验证安装：`tide --version`
+>
+> **第 2 步 — 安装 Agent Skill**（如果你的平台支持技能）
+> ```bash
+> npx skills add 0xfig521/tide
+> ```
+> 这将让 AI 助手掌握所有 Tide 命令和输出格式的结构化知识。
+>
+> **第 3 步 — 添加订阅源**
+> ```bash
+> tide add "https://hnrss.org/frontpage" -c 资讯
+> tide add "https://blog.golang.org/feed.atom" -c 技术
+> tide fetch --quiet
+> ```
+>
+> **第 4 步 —（可选）启动 MCP 服务器**
+> 如果你是 MCP 兼容的 AI 助手（Claude Desktop、Cursor、VS Code），可以让 Tide 以 MCP 模式运行，直接调用工具：
+> ```bash
+> tide mcp &
+> # 暴露的工具：discover_feeds, add_feed, fetch_feeds,
+> # search_entries, list_entries, get_entry, mark_entry, get_feed_health
+> ```
+>
+> **第 5 步 — 验证**
+> ```bash
+> tide list --since 24h --limit 5
+> tide health
+> ```
+>
+> 完成上述步骤后，我就拥有了 Tide 作为我的 RSS 数据管道，可以抓取、搜索、总结、追踪内容，无需再每次编写临时的 RSS 解析代码。
 
 ## 定时抓取
 

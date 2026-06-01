@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Cpu,
   ArrowsLeftRight,
+  RocketLaunch,
 } from "@phosphor-icons/react"
 import { useLocale } from "../i18n/context"
 
@@ -428,6 +429,68 @@ export function Features() {
                 <span className="absolute bottom-4 font-mono text-[9px] text-white/30 tracking-widest uppercase">
                   Active in BG
                 </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 6: Performance Optimized (col-span-3) */}
+          <div
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className="bento-card lg:col-span-3 group relative rounded-2xl border border-white/5 bg-slate-950/60 p-6 overflow-hidden hover:border-brand-emerald/20 transition-all duration-300"
+            style={{ transition: "transform 0.1s ease-out, border-color 0.3s ease" }}
+          >
+            <div className="absolute -inset-px bg-gradient-to-r from-brand-emerald/20 via-brand-cyan/10 to-brand-violet/20 opacity-0 group-hover:opacity-100 rounded-2xl blur-[1px] transition-opacity duration-500 pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8 h-full w-full">
+              <div className="max-w-xl text-left">
+                <div className="w-10 h-10 rounded-xl bg-brand-emerald/10 border border-brand-emerald/15 flex items-center justify-center text-brand-emerald mb-5 shadow-lg shadow-brand-emerald/5">
+                  <RocketLaunch size={22} weight="duotone" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">
+                  {t.features.items[6].title}
+                </h3>
+                <p className="text-terminal-dim text-sm leading-relaxed font-medium">
+                  {t.features.items[6].description}
+                </p>
+              </div>
+
+              {/* Performance Gauge Widget */}
+              <div className="flex flex-col gap-3 font-mono text-[10px] shrink-0 w-full max-w-sm">
+                <div className="rounded-xl border border-white/5 bg-slate-900/60 p-4">
+                  <div className="flex justify-between items-center text-white/30 border-b border-white/5 pb-2 mb-3">
+                    <span>Write Throughput</span>
+                    <span className="text-[9px] text-brand-emerald">+340%</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white/40 w-24">Before (per-row)</span>
+                      <div className="flex-1 h-3 bg-white/5 rounded overflow-hidden">
+                        <div className="h-full w-[22%] bg-white/20 rounded" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white/40 w-24">After (batch)</span>
+                      <div className="flex-1 h-3 bg-brand-emerald/10 rounded overflow-hidden">
+                        <div className="h-full w-full bg-gradient-to-r from-brand-emerald to-brand-cyan rounded" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/5 bg-slate-900/60 p-4">
+                  <div className="flex justify-between items-center text-white/30 border-b border-white/5 pb-2 mb-3">
+                    <span>Output Token Cost</span>
+                    <span className="text-[9px] text-brand-cyan">-100% content</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/40 w-24">list/search</span>
+                    <div className="flex-1 h-3 bg-brand-cyan/10 rounded overflow-hidden relative">
+                      <div className="h-full w-[35%] bg-gradient-to-r from-brand-cyan to-brand-violet rounded" />
+                      <span className="absolute inset-0 flex items-center justify-center text-[8px] text-white/70 font-bold">metadata only</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
