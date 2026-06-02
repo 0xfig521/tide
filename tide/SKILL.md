@@ -27,6 +27,8 @@ Use this skill when the user asks to:
 - **Get incremental changes** — `tide changes --after <cursor>`
 - **Mark entries as processed** — `tide mark <id> --state processed`
 - **Check feed health** — `tide health`
+- **Inspect failed sources** — `tide failures list` / `tide failures inspect <id>`
+- **Clear or retry failed sources** — `tide failures clear [id] --yes` / `tide failures retry <id>`
 - **Manage auto-routing rules** — `tide rule add|list|remove|apply`
 - **Manage categories** — `tide category`
 - **View subscriptions** — `tide sources`
@@ -278,6 +280,48 @@ tide health --format json
 
 ---
 
+### `tide failures`
+
+Manage RSS feed sources that have crossed the failure threshold (default: 3 consecutive fetch errors). Every failure is classified into a machine-readable reason type so AI agents can decide how to respond without re-parsing raw error strings.
+
+| Subcommand | Description |
+|---|---|
+| `list` | Show currently failing feeds with last error |
+| `inspect <id>` | Show full failure history for one feed |
+| `clear [id]` | Hard-delete failing feeds (destructive) |
+| `retry <id>` | Reset error count and retry immediately |
+
+| Flag | Applies to | Description |
+|---|---|---|
+| `--threshold` | list, clear | Minimum `parsing_error_count` (default 3) |
+| `--type` | list | Filter by last-failure type: `http_4xx`, `http_5xx`, `timeout`, `dns`, `tls`, `parse`, `unknown` |
+| `--yes` / `-y` | clear (bulk) | Confirm bulk clear (required for destructive operation) |
+| `--limit` | inspect | Max failure history rows (default 20) |
+| `--format` | list, inspect, clear | Output format: `jsonl` (default), `json` |
+
+**Failure types:**
+- `http_4xx` — Client error (404 Not Found, 410 Gone — likely permanent)
+- `http_5xx` — Server error (503 Busy — may be transient)
+- `timeout` — Connection or read timeout (often transient)
+- `dns` — DNS resolution failed (may resolve itself)
+- `tls` — TLS/certificate error (usually needs human intervention)
+- `parse` — Feed content was unparseable (XML/JSON/RSS/Atom parse failure)
+- `unknown` — Unrecognized error (inspect the raw message)
+
+**Examples:**
+```bash
+tide failures list
+tide failures list --type http_4xx
+tide failures list --threshold 5 --format json
+tide failures inspect 3 --limit 10
+tide failures clear 42                        # removes single feed
+tide failures clear --yes                     # clears all failing feeds
+tide failures clear --threshold 5 --yes       # clears with custom threshold
+tide failures retry 3                         # resets error count
+```
+
+---
+
 ### `tide import <file>`
 
 Import RSS feed subscriptions from an OPML 2.0 file. Supports nested category groups. Duplicate feeds are skipped silently.
@@ -411,6 +455,8 @@ Start an MCP (Model Context Protocol) server over stdio. Enables AI agents to ca
 - `get_entry` — Get entry details
 - `mark_entry` — Set processing state
 - `get_feed_health` — Check feed health
+- `list_failed_feeds` — List feeds that are persistently failing (with classified reason)
+- `clear_failed_feeds` — Hard-delete failing feeds (bulk with confirm=true)
 
 Use this to connect Tide with MCP-compatible AI clients (Claude, Codex, Cursor, etc.).
 

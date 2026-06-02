@@ -89,6 +89,7 @@ tide list --json | jq '.data.items[] | {title, feed_title}'
 | `fetch [--force]` | 拉取最新（支持 --apply-rules）|
 | `changes` | 增量获取新增/变更条目 |
 | `health` | 查看订阅源健康状态 |
+| `failures` | 管理失败源（列出/查看/清除/重试） |
 | `rule` | 管理自动分发规则 |
 | `schedule` | 管理后台守护进程（start/stop/status/logs）|
 | `category` | 分类管理（create/list/assign/remove）|

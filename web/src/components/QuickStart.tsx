@@ -72,6 +72,19 @@ const CLI_COMMANDS = [
     ],
     example: "tide schedule start --interval 2h",
   },
+  {
+    id: "failures",
+    name: "tide failures",
+    desc_en: "Inspect, triage, and remove feed sources that are persistently failing.",
+    desc_zh: "检查、分析和清除持续失败的订阅源。",
+    usage: "tide failures <subcommand> [flags]",
+    flags: [
+      { name: "--threshold", desc_en: "Failure threshold (default: 3)", desc_zh: "失败阈值（默认: 3）" },
+      { name: "--type", desc_en: "Filter by failure type (http_4xx, timeout, parse, etc.)", desc_zh: "按失败类型筛选" },
+      { name: "--yes, -y", desc_en: "Confirm bulk clear", desc_zh: "确认批量清除" },
+    ],
+    example: "tide failures list --type http_4xx --threshold 5",
+  },
 ]
 
 export function QuickStart() {

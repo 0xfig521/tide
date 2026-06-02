@@ -118,6 +118,7 @@ Full skill at [`tide/SKILL.md`](./tide/SKILL.md).
 | `fetch [--force]` | Pull latest from feeds (--apply-rules) |
 | `changes` | Get incremental new/changed entries |
 | `health` | Show feed health status |
+| `failures` | Manage failing sources (list/inspect/clear/retry) |
 | `rule` | Manage auto-routing rules |
 | `schedule` | Manage background daemon (start/stop/status/logs) |
 | `category` | Manage categories (create/list/assign/remove) |
@@ -156,7 +157,8 @@ Paste the prompt below into your AI assistant (Claude, Codex, Cursor, etc.) to h
 > ```bash
 > tide mcp &
 > # This exposes these tools: discover_feeds, add_feed, fetch_feeds,
-> # search_entries, list_entries, get_entry, mark_entry, get_feed_health
+> # search_entries, list_entries, get_entry, mark_entry, get_feed_health,
+# list_failed_feeds, clear_failed_feeds
 > ```
 >
 > **Step 5 — Verify**
