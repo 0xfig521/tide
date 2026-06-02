@@ -311,7 +311,7 @@ func scanEntriesLight(rows *sql.Rows) ([]*models.Entry, error) {
 	return entries, rows.Err()
 }
 
-func formatTime(t *time.Time) interface{} {
+func formatTime(t *time.Time) any {
 	if t == nil || t.IsZero() {
 		return nil
 	}

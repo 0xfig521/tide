@@ -35,7 +35,7 @@ func NewPool(db *db.DB, cfg Config) *Pool {
 
 // Start launches N worker goroutines.
 func (p *Pool) Start(n int) {
-	for i := 0; i < n; i++ {
+	for range n {
 		p.wg.Add(1)
 		w := &Worker{
 			db:     p.db,

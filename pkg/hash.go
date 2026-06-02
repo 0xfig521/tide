@@ -10,6 +10,6 @@ import (
 // Uses feedID + guid to ensure uniqueness within a feed.
 func EntryHash(feedID int64, guid string) string {
 	h := sha256.New()
-	h.Write([]byte(fmt.Sprintf("%d:%s", feedID, guid)))
+	h.Write(fmt.Appendf(nil, "%d:%s", feedID, guid))
 	return hex.EncodeToString(h.Sum(nil))
 }
