@@ -41,3 +41,37 @@ type FeedOutput struct {
 	LastFetched string   `json:"last_fetched_at,omitempty"`
 	IsActive    bool     `json:"is_active"`
 }
+
+// FailureType classifies the root cause of a feed fetch failure.
+type FailureType string
+
+const (
+	FailureHTTP4xx FailureType = "http_4xx"
+	FailureHTTP5xx FailureType = "http_5xx"
+	FailureTimeout FailureType = "timeout"
+	FailureDNS     FailureType = "dns"
+	FailureTLS     FailureType = "tls"
+	FailureParse   FailureType = "parse"
+	FailureUnknown FailureType = "unknown"
+)
+
+// ValidFailureTypes is the canonical whitelist for FailureType values.
+var ValidFailureTypes = map[FailureType]bool{
+	FailureHTTP4xx: true,
+	FailureHTTP5xx: true,
+	FailureTimeout: true,
+	FailureDNS:     true,
+	FailureTLS:     true,
+	FailureParse:   true,
+	FailureUnknown: true,
+}
+
+// FeedFailure is one recorded fetch failure for a feed source.
+type FeedFailure struct {
+	ID           int64       `json:"id"`
+	FeedID       int64       `json:"feed_id"`
+	ErrorType    FailureType `json:"error_type"`
+	ErrorMessage string      `json:"error_message"`
+	HTTPStatus   int         `json:"http_status"`
+	OccurredAt   string      `json:"occurred_at"`
+}

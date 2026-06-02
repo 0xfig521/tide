@@ -29,7 +29,8 @@ Tide's RSS commands as structured tools for AI agents.
 
 Registered tools:
   discover_feeds, add_feed, fetch_feeds, search_entries,
-  list_entries, get_entry, mark_entry, get_feed_health
+  list_entries, get_entry, mark_entry, get_feed_health,
+  list_failed_feeds, clear_failed_feeds
 
 All tool outputs are JSON. The server runs until the client disconnects
 or the process receives SIGTERM/SIGINT.`,
@@ -51,6 +52,8 @@ func runMCP(cmd *cobra.Command, args []string) error {
 	registerGetEntry(s)
 	registerMarkEntry(s)
 	registerGetFeedHealth(s)
+	registerListFailedFeeds(s)
+	registerClearFailedFeeds(s)
 
 	fmt.Fprintln(cmd.ErrOrStderr(), "Tide MCP server starting (stdio)...")
 	return server.ServeStdio(s)
@@ -218,7 +221,7 @@ func registerFetchFeeds(s *server.MCPServer) {
 		for _, job := range jobs {
 			feed, etag, lastModified, statusCode, fetchErr := parser.Fetch(job.FeedURL, job.ETag, job.LastModified)
 			if fetchErr != nil {
-				_ = fr.UpdateFetchError(job.FeedID, fetchErr.Error())
+				_ = fr.UpdateFetchError(job.FeedID, fetchErr.Error(), statusCode)
 				failed++
 				continue
 			}
@@ -654,6 +657,114 @@ func registerGetFeedHealth(s *server.MCPServer) {
 		}
 
 		b, _ := json.Marshal(results)
+		return mcp.NewToolResultText(string(b)), nil
+	})
+}
+
+// ---------------------------------------------------------------------------
+// list_failed_feeds — show feeds that are persistently failing
+// ---------------------------------------------------------------------------
+
+func registerListFailedFeeds(s *server.MCPServer) {
+	tool := mcp.NewTool("list_failed_feeds",
+		mcp.WithDescription("List RSS feeds that have crossed the failure threshold. Returns feed metadata plus the most recent classified failure (type, HTTP status, error message, timestamp). Good for detecting dead/rotting feeds without re-parsing raw error strings."),
+		mcp.WithNumber("threshold", mcp.Description("Failure threshold: minimum parsing_error_count (default 3)")),
+		mcp.WithString("type", mcp.Description(fmt.Sprintf("Filter by last-failure type: %s", repo.FailureTypeList()))),
+	)
+
+	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		threshold := 3
+		if v, vErr := req.RequireFloat("threshold"); vErr == nil && v > 0 {
+			threshold = int(v)
+		}
+
+		var typeFilter models.FailureType
+		if raw := req.GetString("type", ""); raw != "" {
+			typeFilter = models.FailureType(raw)
+			if !models.ValidFailureTypes[typeFilter] {
+				return mcp.NewToolResultError(
+					fmt.Sprintf("invalid type %q. Valid: %s", raw, repo.FailureTypeList())), nil
+			}
+		}
+
+		feeds, err := failureRepo().ListFailingFeeds(threshold, typeFilter)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+
+		b, _ := json.Marshal(feeds)
+		return mcp.NewToolResultText(string(b)), nil
+	})
+}
+
+// ---------------------------------------------------------------------------
+// clear_failed_feeds — hard-delete feeds that are failing
+// ---------------------------------------------------------------------------
+
+func registerClearFailedFeeds(s *server.MCPServer) {
+	tool := mcp.NewTool("clear_failed_feeds",
+		mcp.WithDescription("Hard-delete RSS feeds that are persistently failing. Requires feed_id or confirm=true for bulk mode. ⚠️ This is destructive: removes feeds, their entries, categories, and failure history permanently."),
+		mcp.WithNumber("feed_id", mcp.Description("Optional: clear a specific feed by ID. If omitted, all failing feeds are cleared.")),
+		mcp.WithNumber("threshold", mcp.Description("Failure threshold for bulk clear (default 3, used only when feed_id is omitted)")),
+		mcp.WithBoolean("confirm", mcp.Description("Bulk clear requires confirm=true. This is a safety gate — the operation is permanent.")),
+	)
+
+	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Single feed mode
+		if v, vErr := req.RequireFloat("feed_id"); vErr == nil && v > 0 {
+			feedID := int64(v)
+			f, err := feedRepo().GetByID(feedID)
+			if err != nil {
+				return mcp.NewToolResultError("feed not found"), nil
+			}
+			if delErr := feedRepo().Delete(feedID); delErr != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("delete failed: %v", delErr)), nil
+			}
+			b, _ := json.Marshal(map[string]any{
+				"action":   "cleared",
+				"id":       f.ID,
+				"title":    f.Title,
+				"feed_url": f.FeedURL,
+			})
+			return mcp.NewToolResultText(string(b)), nil
+		}
+
+		// Bulk mode — require confirm=true
+		if !req.GetBool("confirm", false) {
+			return mcp.NewToolResultError(
+				"bulk clear is destructive and permanent. Set confirm=true to proceed."), nil
+		}
+
+		threshold := 3
+		if v, vErr := req.RequireFloat("threshold"); vErr == nil && v > 0 {
+			threshold = int(v)
+		}
+
+		feeds, err := failureRepo().ListFailingFeeds(threshold, "")
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("query failed: %v", err)), nil
+		}
+
+		type clearedEntry struct {
+			ID      int64  `json:"id"`
+			Title   string `json:"title"`
+			FeedURL string `json:"feed_url"`
+		}
+		cleared := make([]clearedEntry, 0, len(feeds))
+		for _, f := range feeds {
+			if delErr := feedRepo().Delete(f.FeedID); delErr != nil {
+				continue
+			}
+			cleared = append(cleared, clearedEntry{ID: f.FeedID, Title: f.Title, FeedURL: f.FeedURL})
+		}
+
+		result := map[string]any{
+			"action":    "cleared",
+			"feeds":     len(cleared),
+			"threshold": threshold,
+			"cleared":   cleared,
+		}
+		b, _ := json.Marshal(result)
 		return mcp.NewToolResultText(string(b)), nil
 	})
 }

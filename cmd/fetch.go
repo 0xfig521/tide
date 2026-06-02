@@ -112,7 +112,7 @@ Use --daemon to run as a background scheduler.`,
 									cancel()
 								})
 							}
-							feedRepo.UpdateFetchError(job.FeedID, fetchErr.Error())
+							feedRepo.UpdateFetchError(job.FeedID, fetchErr.Error(), statusCode)
 							failedFeeds.Add(1)
 							if bar != nil {
 								bar.Add(1)

@@ -16,6 +16,7 @@ func (db *DB) migrate() error {
 		{4, schemaV4},
 		{5, schemaV5},
 		{6, schemaV6},
+		{7, schemaV7},
 	}
 
 	// Create schema version table if not exists
@@ -226,4 +227,18 @@ var schemaV6 = []string{
 		updated_at  TEXT DEFAULT (datetime('now'))
 	)`,
 	`CREATE INDEX IF NOT EXISTS idx_rules_active ON rules(is_active, priority)`,
+}
+
+var schemaV7 = []string{
+	`CREATE TABLE IF NOT EXISTS feed_failures (
+		id            INTEGER PRIMARY KEY AUTOINCREMENT,
+		feed_id       INTEGER NOT NULL,
+		error_type    TEXT NOT NULL CHECK(error_type IN ('http_4xx','http_5xx','timeout','dns','tls','parse','unknown')),
+		error_message TEXT NOT NULL DEFAULT '',
+		http_status   INTEGER NOT NULL DEFAULT 0,
+		occurred_at   TEXT NOT NULL DEFAULT (datetime('now')),
+		FOREIGN KEY (feed_id) REFERENCES feeds(id) ON DELETE CASCADE
+	)`,
+	`CREATE INDEX IF NOT EXISTS idx_feed_failures_feed ON feed_failures(feed_id, occurred_at DESC)`,
+	`CREATE INDEX IF NOT EXISTS idx_feed_failures_type ON feed_failures(error_type, occurred_at)`,
 }

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
@@ -221,13 +222,36 @@ func (r *FeedRepo) UpdateFetchResult(id int64, etag, lastModified string, status
 	return err
 }
 
-// UpdateFetchError records a fetch error and applies backoff.
-func (r *FeedRepo) UpdateFetchError(id int64, errMsg string) error {
+// UpdateFetchError records a fetch error: bumps the per-feed counter with
+// backoff, appends a classified row to feed_failures, and emits a
+// feed_failed event into change_log.
+func (r *FeedRepo) UpdateFetchError(id int64, errMsg string, statusCode int) error {
 	if err := r.prepareUpdateError(); err != nil {
 		return err
 	}
-	_, err := r.updateErrorStmt.Exec(errMsg, id)
-	return err
+	if _, err := r.updateErrorStmt.Exec(errMsg, id); err != nil {
+		return err
+	}
+
+	failureType, httpStatus := models.ClassifyError(errMsg, statusCode)
+
+	if _, err := r.db.Conn.Exec(`
+		INSERT INTO feed_failures (feed_id, error_type, error_message, http_status)
+		VALUES (?, ?, ?, ?)
+	`, id, string(failureType), errMsg, httpStatus); err != nil {
+		return fmt.Errorf("insert feed_failure: %w", err)
+	}
+
+	details := fmt.Sprintf(`{"error_type":%q,"http_status":%d,"message":%q}`,
+		string(failureType), httpStatus, errMsg)
+	if _, err := r.db.Conn.Exec(`
+		INSERT INTO change_log (event_type, entity_id, details)
+		VALUES ('feed_failed', ?, ?)
+	`, id, details); err != nil {
+		return fmt.Errorf("insert change_log: %w", err)
+	}
+
+	return nil
 }
 
 // Delete removes a feed and all associated data (cascades to entries and feed_categories).

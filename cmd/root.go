@@ -62,11 +62,12 @@ func initDB() {
 	}
 }
 
-func feedRepo() *repo.FeedRepo         { return repo.NewFeedRepo(dbConn) }
-func categoryRepo() *repo.CategoryRepo { return repo.NewCategoryRepo(dbConn) }
-func entryRepo() *repo.EntryRepo       { return repo.NewEntryRepo(dbConn) }
-func stateRepo() *repo.EntryStateRepo  { return repo.NewEntryStateRepo(dbConn) }
-func ruleRepo() *repo.RuleRepo         { return repo.NewRuleRepo(dbConn) }
+func feedRepo() *repo.FeedRepo           { return repo.NewFeedRepo(dbConn) }
+func categoryRepo() *repo.CategoryRepo   { return repo.NewCategoryRepo(dbConn) }
+func entryRepo() *repo.EntryRepo         { return repo.NewEntryRepo(dbConn) }
+func stateRepo() *repo.EntryStateRepo    { return repo.NewEntryStateRepo(dbConn) }
+func ruleRepo() *repo.RuleRepo           { return repo.NewRuleRepo(dbConn) }
+func failureRepo() *repo.FeedFailureRepo { return repo.NewFeedFailureRepo(dbConn) }
 
 // parseIDArg parses a string ID argument; returns an error via RunE on failure.
 func parseIDArg(arg string) (int64, error) {

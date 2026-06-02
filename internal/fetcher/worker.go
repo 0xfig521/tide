@@ -48,7 +48,7 @@ func (w *Worker) processJob(job FetchJob) error {
 	feed, etag, lastModified, statusCode, err := w.parser.Fetch(job.FeedURL, job.ETag, job.LastModified)
 	if err != nil {
 		log.Printf("[worker] feed %d (%s) fetch error: %v", job.FeedID, job.FeedURL, err)
-		if recordErr := feedRepo.UpdateFetchError(job.FeedID, err.Error()); recordErr != nil {
+		if recordErr := feedRepo.UpdateFetchError(job.FeedID, err.Error(), statusCode); recordErr != nil {
 			log.Printf("[worker] feed %d failed to record error: %v", job.FeedID, recordErr)
 		}
 		return err
