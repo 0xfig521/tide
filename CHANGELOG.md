@@ -1,3 +1,26 @@
+## 0.7.0 - 2026-06-02
+
+### Features
+- Add `tide failures` command family — `list`, `inspect`, `clear`, `retry` for managing persistently failing RSS feed sources
+- Add `feed_failures` table (schema migration v7) — persistent failure history with classified error types per row
+- Add `ClassifyError` — maps raw fetch errors into structured types: `http_4xx`, `http_5xx`, `timeout`, `dns`, `tls`, `parse`, `unknown`
+- Add `FeedFailureRepo` with `Record`, `ListFailingFeeds` (with type filter), `GetHistory`, `DeleteForFeed`
+- `UpdateFetchError` now writes a `feed_failure` row + `feed_failed` change_log event in one call
+- Add MCP tools `list_failed_feeds` and `clear_failed_feeds` for AI agent triage
+- `tide failures list --threshold --type` for filtered views; `clear --yes` for bulk hard-delete; `retry` for reset
+- Add `AGENTS.md` — compact agent guide with architecture, output contract, DB constraints, and common pitfalls
+
+### Refactor
+- `pool.go`: replace `for i := 0; i < n; i++` with `for range n` (Go 1.22+)
+- `entry_repo.go`: replace `interface{}` with `any`
+- `hash.go`: replace `[]byte(fmt.Sprintf(...))` with `fmt.Appendf`
+
+### Documentation
+- `tide/SKILL.md`: document `tide failures` commands, failure types, flags, and MCP tool list
+- README/zh: add failures to command table
+- Web site: add `tide failures` tab to QuickStart command reference
+- Web i18n: update daemon mode description to mention auto-failure recording
+
 ## 0.6.0 - 2026-06-01
 
 ### Features
