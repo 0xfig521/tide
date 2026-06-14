@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/0xfig521/tide/internal/db"
-	"github.com/0xfig521/tide/internal/models"
-	"github.com/0xfig521/tide/internal/repo"
+	"github.com/0xfig-labs/tide/internal/db"
+	"github.com/0xfig-labs/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/repo"
 )
 
 // Scheduler periodically pulls feeds that are due for checking.

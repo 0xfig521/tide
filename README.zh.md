@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go" alt="Go"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-  <a href="https://github.com/0xfig521/tide/releases"><img src="https://img.shields.io/github/v/release/0xfig521/tide?style=flat" alt="Release"></a>
+  <a href="https://github.com/0xfig-labs/tide/releases"><img src="https://img.shields.io/github/v/release/0xfig-labs/tide?style=flat" alt="Release"></a>
 </p>
 
 <p align="center"><a href="./README.md">English</a> | 中文</p>
@@ -43,13 +43,13 @@
 
 ```bash
 # macOS / Linux — 一行安装
-curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/0xfig-labs/tide/main/install.sh | bash
 
 # Homebrew
-brew install 0xfig521/tap/tide
+brew install 0xfig-labs/tap/tide
 
 # Go
-go install github.com/0xfig521/tide@latest
+go install github.com/0xfig-labs/tide@latest
 ```
 
 ## 快速上手
@@ -106,13 +106,13 @@ tide list --json | jq '.data.items[] | {title, feed_title}'
 >
 > **第 1 步 — 安装 Tide**
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
+> curl -fsSL https://raw.githubusercontent.com/0xfig-labs/tide/main/install.sh | bash
 > ```
 > 验证安装：`tide --version`
 >
 > **第 2 步 — 安装 Agent Skill**（如果你的平台支持技能）
 > ```bash
-> npx skills add 0xfig521/tide
+> npx skills add 0xfig-labs/tide
 > ```
 > 这将让 AI 助手掌握所有 Tide 命令和输出格式的结构化知识。
 >
@@ -218,7 +218,7 @@ tide get 42                            # 获取完整条目（含描述和正文
 安装 skill 后，AI 助手可直接管理 RSS：
 
 ```bash
-npx skills add 0xfig521/tide
+npx skills add 0xfig-labs/tide
 ```
 
 完整 skill 见 [`tide/SKILL.md`](./tide/SKILL.md)。

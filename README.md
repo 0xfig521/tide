@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go" alt="Go"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-  <a href="https://github.com/0xfig521/tide/releases"><img src="https://img.shields.io/github/v/release/0xfig521/tide?style=flat" alt="Release"></a>
+  <a href="https://github.com/0xfig-labs/tide/releases"><img src="https://img.shields.io/github/v/release/0xfig-labs/tide?style=flat" alt="Release"></a>
 </p>
 
 <p align="center">English | <a href="./README.zh.md">中文</a></p>
@@ -43,13 +43,13 @@
 
 ```bash
 # macOS / Linux — one line
-curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/0xfig-labs/tide/main/install.sh | bash
 
 # Homebrew
-brew install 0xfig521/tap/tide
+brew install 0xfig-labs/tap/tide
 
 # Go
-go install github.com/0xfig521/tide@latest
+go install github.com/0xfig-labs/tide@latest
 ```
 
 ## Quick Start
@@ -95,7 +95,7 @@ tide get 42                            # full entry with description + content
 Install the skill once and your agent knows every command:
 
 ```bash
-npx skills add 0xfig521/tide
+npx skills add 0xfig-labs/tide
 ```
 
 Full skill at [`tide/SKILL.md`](./tide/SKILL.md).
@@ -135,13 +135,13 @@ Paste the prompt below into your AI assistant (Claude, Codex, Cursor, etc.) to h
 >
 > **Step 1 — Install Tide**
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
+> curl -fsSL https://raw.githubusercontent.com/0xfig-labs/tide/main/install.sh | bash
 > ```
 > Verify the installation: `tide --version`
 >
 > **Step 2 — Install the Agent Skill** (if your platform supports skills)
 > ```bash
-> npx skills add 0xfig521/tide
+> npx skills add 0xfig-labs/tide
 > ```
 > This gives AI assistants structured knowledge of all Tide commands and output formats.
 >

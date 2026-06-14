@@ -1,7 +1,7 @@
 package fetcher
 
 import (
-	"github.com/0xfig521/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/models"
 )
 
 // ClassifyError re-exports models.ClassifyError for fetcher callers.

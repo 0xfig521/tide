@@ -3,8 +3,8 @@ package repo
 import (
 	"regexp"
 
-	"github.com/0xfig521/tide/internal/db"
-	"github.com/0xfig521/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/db"
+	"github.com/0xfig-labs/tide/internal/models"
 )
 
 type Rule struct {

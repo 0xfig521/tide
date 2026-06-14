@@ -33,13 +33,13 @@ git push origin v0.2.0
 | 构建 | 交叉编译 `darwin/amd64`, `darwin/arm64`, `linux/amd64`, `linux/arm64` |
 | 打包 | tar.gz 归档 + checksums.txt |
 | Release | 创建 GitHub Release，上传二进制 |
-| Brew | 自动更新 `0xfig521/homebrew-tap` formula |
+| Brew | 自动更新 `0xfig-labs/homebrew-tap` formula |
 
 ### 3. 验证
 
 ```bash
 # 二进制下载
-curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/0xfig-labs/tide/main/install.sh | bash
 
 # Homebrew
 brew update && brew upgrade tide
@@ -51,8 +51,8 @@ tide --version
 | 渠道 | 用户命令 | 自动？ |
 |------|----------|--------|
 | curl 脚本 | `curl .../install.sh \| bash` | ✅ |
-| Homebrew | `brew install 0xfig521/tap/tide` | ✅ |
-| Go install | `go install github.com/0xfig521/tide@latest` | ✅ 源码编译 |
+| Homebrew | `brew install 0xfig-labs/tap/tide` | ✅ |
+| Go install | `go install github.com/0xfig-labs/tide@latest` | ✅ 源码编译 |
 
 ## CI/CD 配置
 
@@ -71,7 +71,7 @@ tide --version
 
 - 构建目标：`linux/darwin` × `amd64/arm64`
 - CGO 关闭，纯静态二进制
-- 版本号通过 ldflags 注入：`-X github.com/0xfig521/tide/cmd.version={{.Version}}`
+- 版本号通过 ldflags 注入：`-X github.com/0xfig-labs/tide/cmd.version={{.Version}}`
 
 ## 创建 TAP_GITHUB_TOKEN
 
@@ -79,7 +79,7 @@ tide --version
 
 1. https://github.com/settings/tokens → Generate new token (classic)
 2. 勾选 `repo` 权限
-3. https://github.com/0xfig521/tide/settings/secrets/actions → `TAP_GITHUB_TOKEN`
+3. https://github.com/0xfig-labs/tide/settings/secrets/actions → `TAP_GITHUB_TOKEN`
 
 ## 回滚
 
@@ -87,7 +87,7 @@ tide --version
 
 ```bash
 # 删除线上 release
-gh release delete v0.2.0 --repo 0xfig521/tide --yes
+gh release delete v0.2.0 --repo 0xfig-labs/tide --yes
 
 # 删除 tag
 git tag -d v0.2.0

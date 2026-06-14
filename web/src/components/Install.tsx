@@ -6,17 +6,17 @@ const installMethods = [
   {
     id: "curl",
     label: "curl",
-    command: "curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash",
+    command: "curl -fsSL https://raw.githubusercontent.com/0xfig-labs/tide/main/install.sh | bash",
   },
   {
     id: "brew",
     label: "Homebrew",
-    command: "brew install 0xfig521/tap/tide",
+    command: "brew install 0xfig-labs/tap/tide",
   },
   {
     id: "go",
     label: "Go",
-    command: "go install github.com/0xfig521/tide@latest",
+    command: "go install github.com/0xfig-labs/tide@latest",
   },
 ]
 

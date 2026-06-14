@@ -2,9 +2,9 @@
 name: tide
 description: RSS data adapter for AI agents. Use when managing RSS feeds, fetching articles, searching feed content, or reading RSS articles. All output is JSON with a stable {ok, data, error, meta} envelope — stdout is always clean, errors are structured, exit codes are non-zero on failure.
 metadata:
-  author: 0xfig521
+  author: 0xfig-labs
   version: "1.0.0"
-  source: https://github.com/0xfig521/tide
+  source: https://github.com/0xfig-labs/tide
 ---
 
 # Tide
@@ -43,13 +43,13 @@ The `tide` binary must be installed before use. If not found, guide the user:
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/0xfig-labs/tide/main/install.sh | bash
 
 # Homebrew
-brew install 0xfig521/tap/tide
+brew install 0xfig-labs/tap/tide
 
 # Go
-go install github.com/0xfig521/tide@latest
+go install github.com/0xfig-labs/tide@latest
 ```
 
 ## Global Flags

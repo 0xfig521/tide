@@ -2,11 +2,12 @@ package repo
 
 import (
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
-	"github.com/0xfig521/tide/internal/db"
-	"github.com/0xfig521/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/db"
+	"github.com/0xfig-labs/tide/internal/models"
 )
 
 // entryListCols is the column list for list/search operations — no content field.
@@ -287,6 +288,21 @@ func (r *EntryRepo) CountEntries(q EntryQuery) (int, error) {
 	var count int
 	err := r.db.Conn.QueryRow(query, args...).Scan(&count)
 	return count, err
+}
+
+// DeleteOlderThan deletes entries older than the specified number of days (by created_at).
+// Cascade rules automatically clean up entry_states and FTS index.
+// Returns the number of deleted entries.
+func (r *EntryRepo) DeleteOlderThan(days int) (int64, error) {
+	since := fmt.Sprintf("-%d days", days)
+	result, err := r.db.Conn.Exec(`
+		DELETE FROM entries
+		WHERE created_at < datetime('now', ?)
+	`, since)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 // scanEntriesLight scans 13 fields — no content (matches entryListCols).

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/0xfig521/tide/internal/db"
-	"github.com/0xfig521/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/db"
+	"github.com/0xfig-labs/tide/internal/models"
 )
 
 // setupTestDB creates an in-memory SQLite database, runs migrations, and returns the connection.
@@ -650,5 +650,74 @@ func TestEntryRepo_ListByFeed_ContentNotReturned(t *testing.T) {
 	}
 	if results[0].Content != "" {
 		t.Error("ListByFeed should NOT return content field")
+	}
+}
+
+func TestEntryRepo_DeleteOlderThan(t *testing.T) {
+	database := setupTestDB(t)
+	feed := createTestFeed(t, database, "https://example.com/prune.xml")
+	repo := NewEntryRepo(database)
+
+	// Insert entries with explicit created_at times via raw SQL.
+	// "old1" and "old2" are 10 days old; "new" is recent.
+	type insert struct {
+		guid      string
+		createdAt string
+		hash      string
+	}
+	entries := []insert{
+		{"prune-old-1", time.Now().Add(-10 * 24 * time.Hour).Format("2006-01-02 15:04:05"), "prune-hash-old1"},
+		{"prune-old-2", time.Now().Add(-10 * 24 * time.Hour).Format("2006-01-02 15:04:05"), "prune-hash-old2"},
+		{"prune-new", time.Now().Format("2006-01-02 15:04:05"), "prune-hash-new"},
+	}
+
+	for _, e := range entries {
+		_, err := database.Conn.Exec(`
+			INSERT INTO entries (feed_id, title, url, guid, hash, created_at)
+			VALUES (?, ?, ?, ?, ?, ?)
+		`, feed.ID, "Prune Test", "https://example.com/prune/"+e.guid, e.guid, e.hash, e.createdAt)
+		if err != nil {
+			t.Fatalf("insert entry %s failed: %v", e.guid, err)
+		}
+	}
+
+	// Before pruning: 3 entries
+	all, err := repo.ListEntries(EntryQuery{PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListEntries failed: %v", err)
+	}
+	if len(all) != 3 {
+		t.Fatalf("expected 3 entries before prune, got %d", len(all))
+	}
+
+	// Prune entries older than 7 days: should delete "old1" and "old2" (10 days old)
+	deleted, err := repo.DeleteOlderThan(7)
+	if err != nil {
+		t.Fatalf("DeleteOlderThan failed: %v", err)
+	}
+	if deleted != 2 {
+		t.Errorf("expected 2 deleted entries, got %d", deleted)
+	}
+
+	// Verify only the new entry remains
+	remaining, err := repo.ListEntries(EntryQuery{PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListEntries failed: %v", err)
+	}
+	if len(remaining) != 1 {
+		t.Fatalf("expected 1 entry after prune, got %d", len(remaining))
+	}
+	if remaining[0].GUID != "prune-new" {
+		t.Errorf("expected remaining entry GUID 'prune-new', got %q", remaining[0].GUID)
+	}
+
+	// Prune with 0 days: should not error but return 0 (no entries older than "now")
+	// Since --days must be >= 1 in the CLI, but 0 should be handled safely
+	zero, err := repo.DeleteOlderThan(0)
+	if err != nil {
+		t.Fatalf("DeleteOlderThan(0) failed: %v", err)
+	}
+	if zero != 0 {
+		t.Errorf("expected 0 deletions for 0-day retention, got %d", zero)
 	}
 }

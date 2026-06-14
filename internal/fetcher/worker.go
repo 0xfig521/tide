@@ -9,10 +9,10 @@ import (
 
 	"github.com/mmcdole/gofeed"
 
-	"github.com/0xfig521/tide/internal/db"
-	"github.com/0xfig521/tide/internal/models"
-	"github.com/0xfig521/tide/internal/repo"
-	"github.com/0xfig521/tide/pkg"
+	"github.com/0xfig-labs/tide/internal/db"
+	"github.com/0xfig-labs/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/repo"
+	"github.com/0xfig-labs/tide/pkg"
 )
 
 // Worker processes fetch jobs.

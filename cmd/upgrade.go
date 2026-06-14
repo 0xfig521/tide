@@ -15,11 +15,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/0xfig521/tide/internal/output"
+	"github.com/0xfig-labs/tide/internal/output"
 )
 
 const (
-	githubOwner = "0xfig521"
+	githubOwner = "0xfig-labs"
 	githubRepo  = "tide"
 	releasesURL = "https://api.github.com/repos/" + githubOwner + "/" + githubRepo + "/releases"
 )

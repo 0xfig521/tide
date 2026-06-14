@@ -60,7 +60,7 @@ web/          → separate React+vite+tailwind+gsap site, not relevant to CLI
 - **Import cycle guard**: `fetcher` imports `repo` → `repo` must NOT import `fetcher`. Shared logic that both need (like error classification) goes in `models/`.
 - **SQLite single writer**: Every connection pool uses `SetMaxOpenConns(1)`. Don't change this — SQLite cannot safely parallel-write.
 - **Prepared statements**: Lazily initialized via `sync.Once` per statement in repo layer (pattern: `prepareXxx()` + `xxxOnce`).
-- **Version injected at build**: `-X github.com/0xfig521/tide/cmd.version={{.Version}}` via goreleaser. The `version` variable lives in `cmd/root.go`.
+- **Version injected at build**: `-X github.com/0xfig-labs/tide/cmd.version={{.Version}}` via goreleaser. The `version` variable lives in `cmd/root.go`.
 
 ## Testing
 

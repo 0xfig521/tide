@@ -1,4 +1,4 @@
-module github.com/0xfig521/tide
+module github.com/0xfig-labs/tide
 
 go 1.25.5
 

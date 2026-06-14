@@ -13,9 +13,9 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/0xfig521/tide/internal/fetcher"
-	"github.com/0xfig521/tide/internal/models"
-	"github.com/0xfig521/tide/internal/repo"
+	"github.com/0xfig-labs/tide/internal/fetcher"
+	"github.com/0xfig-labs/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/repo"
 )
 
 // ensure gofeed import is retained for Parser.Fetch return type usage
@@ -30,7 +30,7 @@ Tide's RSS commands as structured tools for AI agents.
 Registered tools:
   discover_feeds, add_feed, fetch_feeds, search_entries,
   list_entries, get_entry, mark_entry, get_feed_health,
-  list_failed_feeds, clear_failed_feeds
+  list_failed_feeds, clear_failed_feeds, prune_entries
 
 All tool outputs are JSON. The server runs until the client disconnects
 or the process receives SIGTERM/SIGINT.`,
@@ -54,6 +54,7 @@ func runMCP(cmd *cobra.Command, args []string) error {
 	registerGetFeedHealth(s)
 	registerListFailedFeeds(s)
 	registerClearFailedFeeds(s)
+	registerPruneEntries(s)
 
 	fmt.Fprintln(cmd.ErrOrStderr(), "Tide MCP server starting (stdio)...")
 	return server.ServeStdio(s)
@@ -763,6 +764,36 @@ func registerClearFailedFeeds(s *server.MCPServer) {
 			"feeds":     len(cleared),
 			"threshold": threshold,
 			"cleared":   cleared,
+		}
+		b, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(b)), nil
+	})
+}
+
+// ---------------------------------------------------------------------------
+// prune_entries — delete entries older than the retention period
+// ---------------------------------------------------------------------------
+
+func registerPruneEntries(s *server.MCPServer) {
+	tool := mcp.NewTool("prune_entries",
+		mcp.WithDescription("Delete RSS entries older than the specified retention period. Cleans up storage by removing stale entries. Entry states are removed automatically via cascade."),
+		mcp.WithNumber("days", mcp.Description("Retention period in days (default 7). Entries older than this are deleted.")),
+	)
+
+	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		days := 7.0
+		if v, err := req.RequireFloat("days"); err == nil && v >= 1 {
+			days = v
+		}
+
+		deleted, err := entryRepo().DeleteOlderThan(int(days))
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("prune failed: %v", err)), nil
+		}
+
+		result := map[string]any{
+			"deleted":        deleted,
+			"retention_days": int(days),
 		}
 		b, _ := json.Marshal(result)
 		return mcp.NewToolResultText(string(b)), nil

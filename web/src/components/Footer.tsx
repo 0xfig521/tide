@@ -31,7 +31,7 @@ export function Footer() {
           {/* Links */}
           <div className="flex flex-wrap justify-center items-center gap-8">
             <a
-              href="https://github.com/0xfig521/tide"
+              href="https://github.com/0xfig-labs/tide"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-terminal-dim hover:text-brand-cyan transition-all duration-300 group"
@@ -40,7 +40,7 @@ export function Footer() {
               <span className="font-medium">{t.footer.github}</span>
             </a>
             <a
-              href="https://github.com/0xfig521/tide/blob/main/LICENSE"
+              href="https://github.com/0xfig-labs/tide/blob/main/LICENSE"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-terminal-dim hover:text-brand-violet transition-all duration-300 group"
@@ -49,7 +49,7 @@ export function Footer() {
               <span className="font-medium">{t.footer.license}</span>
             </a>
             <a
-              href="https://github.com/0xfig521/tide/releases"
+              href="https://github.com/0xfig-labs/tide/releases"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-terminal-dim hover:text-brand-pink transition-all duration-300 group"

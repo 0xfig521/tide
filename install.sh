@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # tide installer — pure binary download, no Go required
-# Usage: curl -fsSL https://raw.githubusercontent.com/0xfig521/tide/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/0xfig-labs/tide/main/install.sh | bash
 
-OWNER="0xfig521"
+OWNER="0xfig-labs"
 REPO="tide"
 BINARY="tide"
 INSTALL_DIR="${TIDE_INSTALL_DIR:-/usr/local/bin}"

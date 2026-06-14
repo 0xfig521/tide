@@ -6,7 +6,7 @@ import (
 
 	"github.com/mmcdole/gofeed"
 
-	"github.com/0xfig521/tide/pkg"
+	"github.com/0xfig-labs/tide/pkg"
 )
 
 func TestConvertEntry_BasicMapping(t *testing.T) {

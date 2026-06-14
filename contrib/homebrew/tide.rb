@@ -1,10 +1,10 @@
 class Tide < Formula
   desc "High-speed RSS reader for the terminal"
-  homepage "https://github.com/0xfig521/tide"
+  homepage "https://github.com/0xfig-labs/tide"
   license "MIT"
   version "0.1.1"
 
-  BASE = "https://github.com/0xfig521/tide/releases/download/v#{version}"
+  BASE = "https://github.com/0xfig-labs/tide/releases/download/v#{version}"
 
   on_macos do
     if Hardware::CPU.arm?

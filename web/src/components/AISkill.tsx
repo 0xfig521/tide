@@ -2,7 +2,7 @@ import { Copy, Check, Cpu, Brain, Sparkle, BookOpen } from "@phosphor-icons/reac
 import { useState, useRef, useEffect } from "react"
 import { useLocale } from "../i18n/context"
 
-const SKILL_COMMAND = "npx skills add 0xfig521/tide"
+const SKILL_COMMAND = "npx skills add 0xfig-labs/tide"
 
 interface Particle {
   x: number

@@ -1,3 +1,10 @@
+## 0.7.1 - 2026-06-14
+
+### Infrastructure
+- Migrate GitHub organization from `0xfig521` to `0xfig-labs`
+- Update all Go module paths, Homebrew tap, install scripts, and documentation URLs
+- Git remote updated to `github.com/0xfig-labs/tide`
+
 ## 0.7.0 - 2026-06-02
 
 ### Features

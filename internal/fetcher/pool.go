@@ -3,8 +3,8 @@ package fetcher
 import (
 	"sync"
 
-	"github.com/0xfig521/tide/internal/db"
-	"github.com/0xfig521/tide/internal/repo"
+	"github.com/0xfig-labs/tide/internal/db"
+	"github.com/0xfig-labs/tide/internal/repo"
 )
 
 // FetchJob represents a feed to be fetched.

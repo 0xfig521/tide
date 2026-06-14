@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -14,10 +15,10 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 
-	"github.com/0xfig521/tide/internal/fetcher"
-	"github.com/0xfig521/tide/internal/models"
-	"github.com/0xfig521/tide/internal/output"
-	"github.com/0xfig521/tide/internal/repo"
+	"github.com/0xfig-labs/tide/internal/fetcher"
+	"github.com/0xfig-labs/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/output"
+	"github.com/0xfig-labs/tide/internal/repo"
 )
 
 var (
@@ -30,6 +31,7 @@ var (
 	fetchQuiet       bool
 	fetchFailFast    bool
 	fetchApplyRules  bool
+	fetchPruneDays   int // 0 = disabled, >0 = auto-prune old entries after fetch
 )
 
 var fetchCmd = &cobra.Command{
@@ -176,6 +178,16 @@ Use --daemon to run as a background scheduler.`,
 			bar.Finish()
 		}
 
+		// Auto-prune old entries if --prune is set
+		if fetchPruneDays > 0 {
+			deleted, pruneErr := entryRepo.DeleteOlderThan(fetchPruneDays)
+			if pruneErr != nil {
+				log.Printf("[fetch] prune error: %v", pruneErr)
+			} else if deleted > 0 {
+				log.Printf("[fetch] pruned %d entries older than %d days", deleted, fetchPruneDays)
+			}
+		}
+
 		if fetchFailFast && firstFailure != nil {
 			b, _ := json.Marshal(output.Response{
 				OK: false,
@@ -278,5 +290,6 @@ func init() {
 	fetchCmd.Flags().BoolVar(&fetchQuiet, "quiet", false, "Suppress progress bar output")
 	fetchCmd.Flags().BoolVar(&fetchFailFast, "fail-fast", false, "Stop immediately on first fetch error")
 	fetchCmd.Flags().BoolVar(&fetchApplyRules, "apply-rules", false, "Apply rules after fetching")
+	fetchCmd.Flags().IntVar(&fetchPruneDays, "prune", 0, "Auto-prune entries older than N days after fetch (default: disabled)")
 	rootCmd.AddCommand(fetchCmd)
 }

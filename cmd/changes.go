@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/0xfig521/tide/internal/models"
-	"github.com/0xfig521/tide/internal/output"
+	"github.com/0xfig-labs/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/output"
 )
 
 var (

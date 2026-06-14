@@ -9,7 +9,7 @@ builds:
     binary: tide
     ldflags:
       - -s -w
-      - -X github.com/0xfig521/tide/cmd.version={{.Version}}
+      - -X github.com/0xfig-labs/tide/cmd.version={{.Version}}
     env:
       - CGO_ENABLED=0
     goos:
@@ -41,19 +41,19 @@ changelog:
 
 release:
   github:
-    owner: 0xfig521
+    owner: 0xfig-labs
     name: tide
 
 brews:
   - name: tide
     repository:
-      owner: 0xfig521
+      owner: 0xfig-labs
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     commit_author:
       name: tide-bot
-      email: bot@0xfig521.dev
-    homepage: "https://github.com/0xfig521/tide"
+      email: bot@0xfig-labs.dev
+    homepage: "https://github.com/0xfig-labs/tide"
     description: "High-speed RSS reader for the terminal"
     license: "MIT"
     directory: Formula

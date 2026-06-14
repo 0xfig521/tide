@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/0xfig521/tide/internal/models"
+	"github.com/0xfig-labs/tide/internal/models"
 )
 
 // createTestEntry inserts an entry via EntryRepo and returns it with the assigned ID.

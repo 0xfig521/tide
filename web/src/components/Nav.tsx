@@ -69,7 +69,7 @@ export function Nav() {
 
             {/* GitHub Link */}
             <a
-              href="https://github.com/0xfig521/tide"
+              href="https://github.com/0xfig-labs/tide"
               target="_blank"
               rel="noopener noreferrer"
               className="relative group flex items-center gap-2 text-terminal-fg hover:text-brand-cyan transition-colors py-1.5 px-3 rounded-full hover:bg-white/5 border border-transparent hover:border-white/5 duration-300"
